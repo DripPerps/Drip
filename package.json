@@ -1,0 +1,9 @@
+{
+  "name": "drip-perps",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Drip — permissionless perpetuals DEX on Solana (demo)",
+  "main": "server/index.js",
+  "scripts": { "start": "node server/index.js" },
+  "engines": { "node": ">=18" }
+}
