@@ -193,7 +193,7 @@ footer a{color:var(--dim)} footer a:hover{color:var(--acc)}
     <ol>
       <li><b>Enter the testnet</b> — hit <a href="/app" style="color:var(--acc)">Enter Testnet</a>. No signup, no wallet signature, no risk.</li>
       <li><b>Load an account</b> — paste any <code>0x…</code> wallet address. Your paper account is seeded with <b>10,000 USDC</b>.</li>
-      <li><b>Pick a market</b> — 8 live markets in the left rail, each marked to real Pyth prices.</li>
+      <li><b>Pick a market</b> — 10 live markets in the left rail, each marked to a real oracle price (Pyth for majors, pinned DEX pairs for Robinhood-native tokens).</li>
       <li><b>Open a position</b> — choose Long or Short, set size and leverage, review entry / margin / est. liquidation / fee, execute.</li>
       <li><b>Manage it</b> — watch live PnL, ROE, your liquidation price, your <b>ADL index</b>, and your haircut-adjusted withdrawable value. Close whenever.</li>
     </ol>
@@ -265,8 +265,10 @@ docs below is visible there, live, while you trade.</pre>
       <tr><td>GOAT-PERP</td><td>20×</td><td>Pyth · GOAT/USD</td></tr>
       <tr><td>MOODENG-PERP</td><td>20×</td><td>Pyth · MOODENG/USD</td></tr>
       <tr><td>FARTCOIN-PERP</td><td>20×</td><td>Pyth · FARTCOIN/USD</td></tr>
+      <tr><td>CASHCAT-PERP</td><td>20×</td><td>DEX · pinned Robinhood pair</td></tr>
+      <tr><td>JUGGERNAUT-PERP</td><td>10×</td><td>DEX · pinned Robinhood pair</td></tr>
     </table>
-    <p>Listing is <b>permissionless by design</b> — any token with a reliable oracle feed can carry a market, because the engine never takes directional risk it can't socialize safely. More markets ship as feeds are added.</p>
+    <p>Listing is <b>permissionless by design</b> — any token with a reliable live price can carry a market, because the engine never takes directional risk it can't socialize safely. Majors mark to <b>Pyth</b>; Robinhood-native tokens with no Pyth feed mark to a <b>pinned, deep-liquidity DEX pair</b> (a fixed pool address, not a token search — so a thin copycat pool can never become the price). Robinhood natives carry tighter max leverage to reflect their oracle thinness. More markets ship as feeds are added.</p>
 
     <h2 id="positions"><span class="hash">#</span>Positions, PnL &amp; liquidation</h2>
     <p>Positions are <b>isolated sub-accounts</b>: each carries its own collateral <code>C</code>, entry snapshot, and liquidation price. One position blowing up never touches your others.</p>

@@ -63,7 +63,7 @@ function updateHead(m) {
   $('m-price').className = 'price ' + cls;
   $('m-chg').textContent = signed(m.change) + '%'; $('m-chg').className = 'v ' + cls;
   $('m-fund').textContent = signed(m.funding, 4) + '%'; $('m-fund').className = 'v ' + (m.funding >= 0 ? 'up' : 'down');
-  $('c-sym').textContent = m.sym + '/USD · Pyth oracle';
+  $('c-sym').textContent = m.sym + '/USD · ' + (m.src === 'dex' ? 'DEX oracle (pinned pair)' : 'Pyth oracle');
   $('levmax').textContent = 'max ' + m.maxLev + '×';
   $('lev').max = m.maxLev; if (+$('lev').value > m.maxLev) { $('lev').value = m.maxLev; }
 }

@@ -63,38 +63,60 @@ const FEED = {
   FARTCOIN: '58cd29ef0e714c5affc44f269b2c1899a52da4169d7acc147b9da692e6953608',
   SOL: 'ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
 };
+// Robinhood-native listings — no Pyth feed exists for these, so they mark to a
+// PINNED deep-liquidity DEX pair (DexScreener pair address, NOT a per-token
+// search — pinning the exact pair is what avoids the mispriced-pair problem).
+const DSPAIR = {
+  JUGGERNAUT: '0x588b0785f50063260003B7790C42f1eF74902746', // vs WETH · ~$450k liq
+  CASHCAT: '0xA70fc67C9F69da90B63a0e4C05D229954574E313',    // vs WETH · ~$5.6M liq
+};
 function side() { return { A: 1, K: 0, F: 0, OI: 0, epoch: 0, mode: 'Normal', K0: 0, F0: 0 }; }
 const MKT = [
   ['BONK', 0.0000043, 8], ['WIF', 0.15, 4], ['POPCAT', 0.046, 4], ['PNUT', 0.042, 4],
   ['GOAT', 0.0124, 5], ['MOODENG', 0.038, 5], ['FARTCOIN', 0.123, 4], ['SOL', 68, 2],
+  ['JUGGERNAUT', 0.0102, 5], ['CASHCAT', 0.111, 4],
 ].map(([sym, px, dp]) => ({
-  sym, feed: FEED[sym], px, P_last: px, base: px, dp,
-  maxLev: sym === 'SOL' ? 50 : 20, fundingRate: (Math.random() - .5) * 4e-5,
+  sym, feed: FEED[sym], ds: DSPAIR[sym], src: FEED[sym] ? 'pyth' : 'dex', px, P_last: px, base: px, dp,
+  maxLev: sym === 'SOL' ? 50 : sym === 'JUGGERNAUT' ? 10 : 20, fundingRate: (Math.random() - .5) * 4e-5,
   seenLive: false, live: false, lastTs: 0, dayRef: { price: px, ts: Date.now() },
   hist: [], long: side(), short: side(),
 }));
 const M = (s) => MKT.find((m) => m.sym === s);
 let PRICE_OK = false, LAST_OK = 0;
 
-// pull live Pyth prices; first sighting seeds the market, subsequent ticks mark-to-market
+// first sighting seeds the market (no mark); subsequent ticks mark-to-market
+function seedOrMark(m, px) {
+  if (!(px > 0)) return;
+  if (!m.seenLive || m.bootCatch) {            // first sight (or first tick after restart): re-anchor, do NOT mark
+    if (!m.seenLive) { m.base = px; m.dayRef = { price: px, ts: Date.now() }; }
+    m.px = m.P_last = px; m.seenLive = true; m.bootCatch = false;
+  } else applyMark(m, px);
+  m.live = true; m.lastTs = Date.now();
+  if (Date.now() - m.dayRef.ts > 864e5) m.dayRef = { price: px, ts: Date.now() };
+}
+// pull live Pyth prices for oracle-fed markets
 async function fetchPrices() {
   try {
-    const q = MKT.map((m) => 'ids[]=' + m.feed).join('&');
+    const q = MKT.filter((m) => m.feed).map((m) => 'ids[]=' + m.feed).join('&');
     const r = await fetch(PYTH + '?' + q, { headers: { accept: 'application/json' } });
     if (!r.ok) throw new Error('http ' + r.status);
     const j = await r.json(); const by = {};
     for (const p of j.parsed || []) by[p.id.replace(/^0x/, '')] = Number(p.price.price) * Math.pow(10, p.price.expo);
-    for (const m of MKT) {
-      const px = by[m.feed]; if (!(px > 0)) continue;
-      if (!m.seenLive || m.bootCatch) {            // first sight (or first tick after restart): re-anchor, do NOT mark
-        if (!m.seenLive) { m.base = px; m.dayRef = { price: px, ts: Date.now() }; }
-        m.px = m.P_last = px; m.seenLive = true; m.bootCatch = false;
-      } else applyMark(m, px);
-      m.live = true; m.lastTs = Date.now();
-      if (Date.now() - m.dayRef.ts > 864e5) m.dayRef = { price: px, ts: Date.now() };
-    }
+    for (const m of MKT) { if (m.feed) seedOrMark(m, by[m.feed]); }
     PRICE_OK = true; LAST_OK = Date.now();
   } catch (e) { PRICE_OK = false; }
+}
+// pull live prices for Robinhood-native markets from their PINNED DEX pairs
+async function fetchDexPrices() {
+  const ds = MKT.filter((m) => m.ds);
+  if (!ds.length) return;
+  try {
+    const r = await fetch('https://api.dexscreener.com/latest/dex/pairs/robinhood/' + ds.map((m) => m.ds).join(','), { headers: { accept: 'application/json' } });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json(); const by = {};
+    for (const p of j.pairs || []) by[(p.pairAddress || '').toLowerCase()] = +p.priceUsd;
+    for (const m of ds) seedOrMark(m, by[m.ds.toLowerCase()]);
+  } catch (e) { /* transient — pinned pairs keep last good price */ }
 }
 
 // ---------- state ----------
@@ -236,8 +258,8 @@ function closePos(id) {
 // ---------- views ----------
 function sideView(S) { return { A: S.A, K: S.K, F: S.F, OI: S.OI, epoch: S.epoch, mode: S.mode }; }
 const chg = (m) => (m.px / m.dayRef.price - 1) * 100;
-function markets() { return MKT.map((m) => ({ sym: m.sym, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, longMode: m.long.mode, shortMode: m.short.mode })); }
-function marketDetail(sym) { const m = M(sym); if (!m) return null; return { sym: m.sym, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, hist: m.hist.slice(-120), long: sideView(m.long), short: sideView(m.short) }; }
+function markets() { return MKT.map((m) => ({ sym: m.sym, src: m.src, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, longMode: m.long.mode, shortMode: m.short.mode })); }
+function marketDetail(sym) { const m = M(sym); if (!m) return null; return { sym: m.sym, src: m.src, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, hist: m.hist.slice(-120), long: sideView(m.long), short: sideView(m.short) }; }
 function account(addr) {
   const w = W(addr), s = solvency();
   const positions = db.pos.filter((p) => p.wallet === addr).map((p) => {
@@ -259,7 +281,7 @@ function metrics() {
   const lb = Object.entries(db.wallets).filter(([a]) => !a.startsWith('Bot')).map(([a, w]) => ({ wallet: a.slice(0, 4) + '…' + a.slice(-4), realized: w.realized, open: db.pos.filter((p) => p.wallet === a).length }))
     .filter((x) => x.realized !== 0 || x.open > 0).sort((a, b) => b.realized - a.realized).slice(0, 8);
   return { token: TOKEN, mint: IVY_MINT, oi, traders: Object.keys(db.wallets).filter((a) => !a.startsWith('Bot')).length, openPositions: db.pos.length,
-    priceLive: PRICE_OK, priceSource: 'Pyth',
+    priceLive: PRICE_OK, priceSource: 'Pyth + DEX',
     vault: s.V, insurance: s.I, capital: s.C_tot, profit: s.pnlPos, residual: s.residual, haircut: s.H, pending: s.pendR, dripPrice: +(0.002 + Math.max(0, s.residual) / 2e7).toFixed(6), leaderboard: lb };
 }
 
@@ -271,7 +293,7 @@ function body(req) { return new Promise((r) => { let b = ''; req.on('data', (c) 
 
 const server = http.createServer(async (req, res) => {
   const u = req.url.split('?')[0];
-  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: IVY_MINT, network: 'robinhood-chain', priceLive: PRICE_OK, priceSource: 'Pyth', lastPrice: LAST_OK, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp })), chain: CHAIN });
+  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: IVY_MINT, network: 'robinhood-chain', priceLive: PRICE_OK, priceSource: 'Pyth + DEX', lastPrice: LAST_OK, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp, src: m.src })), chain: CHAIN });
   if (u === '/api/markets') return json(res, 200, markets());
   if (u === '/api/metrics') return json(res, 200, metrics());
   if (u.startsWith('/api/market/')) { const d = marketDetail(u.split('/')[3]); return d ? json(res, 200, d) : json(res, 404, { error: 'no market' }); }
@@ -286,8 +308,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 (async () => {
-  await fetchPrices();                          // seed real prices before accepting traffic
+  await fetchPrices(); await fetchDexPrices();                          // seed real prices before accepting traffic
   server.listen(PORT, () => console.log('IVY × percolator engine on :' + PORT + ' — ' + MKT.length + ' markets · Pyth live=' + PRICE_OK));
-  setInterval(fetchPrices, 2500);               // live oracle refresh
+  setInterval(fetchPrices, 2500); setInterval(fetchDexPrices, 4000);               // live oracle refresh
   setInterval(tick, SEC * 1000);                // settle / liquidate / recover
 })();
