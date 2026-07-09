@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Docs — IVY · the perp DEX that can't go insolvent</title>
+<meta name="description" content="IVY documentation: the percolator-style solvency engine (haircut H, queue-free ADL, bounded cranks), trading guide, markets, oracle, API reference, and the road to mainnet.">
+<link rel="canonical" href="https://ivyrobinhood.xyz/docs">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="IVY">
+<meta property="og:url" content="https://ivyrobinhood.xyz/docs">
+<meta property="og:title" content="IVY Docs — how the solvency engine works">
+<meta property="og:description" content="Haircut H · queue-free ADL · bounded cranks. The full mechanics of a perp DEX that can't go insolvent, on Robinhood Chain.">
+<meta property="og:image" content="https://ivyrobinhood.xyz/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ivyrobinhood.xyz/og.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#050705; --bg2:#0a0f0a; --pnl:#0b110b; --pnl2:#0f180f;
+  --line:rgba(120,235,160,.16); --line2:rgba(120,235,160,.28);
+  --ink:#eafff0; --dim:#9bccac; --mut:#5e876c; --faint:#36563c;
+  --acc:#2bff86; --acc2:#33ff96; --violet:#66ffb0; --magenta:#ff4d5e; --gold:#ffd166;
+  --glow:rgba(43,255,134,.22); --disp:'Audiowide',sans-serif;
+  --chrome:linear-gradient(180deg,#ffffff 0%,#dfffe6 28%,#82c896 50%,#dfffe6 72%,#ffffff 100%);
+  --glass:linear-gradient(180deg,rgba(20,52,30,.5),rgba(6,18,9,.55));
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14.5px;line-height:1.62;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:-2;background:
+  radial-gradient(60% 45% at 82% -8%,rgba(51,255,150,.14),transparent 60%),
+  radial-gradient(55% 45% at 6% 4%,rgba(43,255,134,.11),transparent 55%),
+  linear-gradient(180deg,#080c08,#050705 60%)}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1180px;margin:0 auto;padding:0 22px}
+.chrome{background:var(--chrome);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
+.btn{position:relative;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(160,250,190,.3);
+  background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.03));color:var(--ink);border-radius:999px;
+  padding:13px 22px;font-size:14px;font-weight:700;letter-spacing:.2px;overflow:hidden;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 14px rgba(0,0,0,.35);transition:.16s}
+.btn:hover{border-color:var(--acc);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 20px var(--glow)}
+.btn.acc{background:linear-gradient(180deg,#b4ffca,#34ec86 46%,#12bd66);color:#04180d;border:1px solid rgba(255,255,255,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -7px 14px rgba(0,90,72,.35),0 6px 20px rgba(43,255,134,.4)}
+.btn.sm{padding:9px 16px;font-size:13px}
+.top{position:sticky;top:0;z-index:40;background:linear-gradient(180deg,rgba(8,18,10,.88),rgba(8,18,10,.55));backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--acc),var(--acc2),transparent);opacity:.6}
+.top .wrap{display:flex;align-items:center;gap:22px;height:64px}
+.brand{display:flex;align-items:center;gap:11px}
+.brand .drop{width:30px;height:30px;filter:drop-shadow(0 2px 6px rgba(43,255,134,.5))}
+.brand b{font-family:var(--disp);font-size:21px;font-weight:400;letter-spacing:1px;background:var(--chrome);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav{display:flex;gap:6px;margin-left:10px}
+.nav a{font-size:13px;font-weight:600;color:var(--dim);padding:8px 13px;border-radius:999px}
+.nav a:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.nav a.on{color:var(--acc);background:rgba(43,255,134,.09)}
+.top .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.icon{width:40px;height:40px;display:grid;place-items:center;border:1px solid var(--line);border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.02));color:var(--dim)}
+.icon:hover{color:var(--acc);border-color:var(--acc)}
+@media(max-width:760px){.nav{display:none}}
+
+/* live strip */
+.livestrip{border-bottom:1px solid var(--line);background:rgba(6,14,8,.6)}
+.livestrip .wrap{display:flex;gap:26px;align-items:center;height:42px;overflow-x:auto}
+.lv{display:flex;gap:8px;align-items:center;font-family:'JetBrains Mono';font-size:11.5px;letter-spacing:.6px;color:var(--mut);white-space:nowrap}
+.lv b{color:var(--acc);font-weight:600}
+.lv .dot{width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+
+/* layout */
+.docs{display:grid;grid-template-columns:250px 1fr;gap:44px;max-width:1180px;margin:0 auto;padding:34px 22px 90px}
+@media(max-width:900px){.docs{grid-template-columns:1fr}.side{display:none}}
+.side{position:sticky;top:80px;height:fit-content;border-right:1px solid var(--line);padding-right:18px}
+.side h5{font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--mut);margin:18px 0 7px}
+.side h5:first-child{margin-top:0}
+.side a{display:block;font-size:13px;font-weight:600;color:var(--dim);padding:6px 10px;border-radius:8px;border-left:2px solid transparent}
+.side a:hover{color:var(--ink);background:rgba(255,255,255,.05)}
+.side a.on{color:var(--acc);border-left-color:var(--acc);background:rgba(43,255,134,.07);border-radius:0 8px 8px 0}
+
+/* content */
+.content{max-width:780px;min-width:0}
+.crumb{font-family:'JetBrains Mono';font-size:11px;letter-spacing:1px;color:var(--mut);margin-bottom:14px}
+.crumb a{color:var(--mut)} .crumb a:hover{color:var(--acc)}
+h1{font-family:var(--disp);font-weight:400;font-size:clamp(28px,4.5vw,42px);letter-spacing:.5px;line-height:1.12;margin-bottom:12px}
+.lede{color:var(--dim);font-size:16px;max-width:64ch;margin-bottom:8px}
+h2{font-family:var(--disp);font-weight:400;font-size:22px;letter-spacing:.5px;margin:54px 0 14px;padding-top:22px;border-top:1px solid var(--line);scroll-margin-top:84px}
+h2 .hash{color:var(--faint);margin-right:8px}
+h3{font-size:15.5px;font-weight:800;color:var(--ink);margin:26px 0 8px;scroll-margin-top:84px}
+p{color:var(--dim);margin-bottom:12px;max-width:70ch}
+p b,li b{color:var(--ink)}
+ul,ol{margin:0 0 14px 20px;color:var(--dim)}
+li{margin-bottom:6px;max-width:66ch}
+code{font-family:'JetBrains Mono',monospace;font-size:.88em;color:var(--acc2);background:rgba(43,255,134,.09);border:1px solid rgba(43,255,134,.22);border-radius:5px;padding:1px 6px}
+pre{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;color:var(--dim);background:#040604;border:1px solid var(--line2);border-radius:12px;padding:16px 18px;overflow-x:auto;margin:0 0 16px}
+pre b{color:var(--acc);font-weight:600}
+pre i{color:var(--mut);font-style:normal}
+.formula{background:linear-gradient(180deg,rgba(20,52,30,.45),rgba(6,18,9,.5));border:1px solid rgba(43,255,134,.3);border-left:3px solid var(--acc);border-radius:12px;padding:15px 20px;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--ink);margin:0 0 16px;overflow-x:auto;white-space:nowrap}
+.formula small{display:block;font-size:11px;color:var(--mut);letter-spacing:1px;margin-top:7px;white-space:normal}
+.callout{background:var(--glass);border:1px solid var(--line2);border-radius:12px;padding:14px 18px;margin:0 0 16px;font-size:13.5px;color:var(--dim)}
+.callout.warn{border-color:rgba(255,209,102,.35);background:linear-gradient(180deg,rgba(60,48,10,.3),rgba(6,18,9,.5))}
+.callout.warn::before{content:"HONEST NOTE";display:block;font-family:'JetBrains Mono';font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:6px}
+.callout.note::before{content:"NOTE";display:block;font-family:'JetBrains Mono';font-size:10px;letter-spacing:2px;color:var(--acc);margin-bottom:6px}
+table{width:100%;border-collapse:collapse;margin:0 0 18px;font-size:13.5px}
+th{font-family:'JetBrains Mono';font-size:10.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--mut);text-align:left;padding:8px 12px;border-bottom:1px solid var(--line2)}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--dim);vertical-align:top}
+td:first-child{font-family:'JetBrains Mono',monospace;color:var(--ink);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+.pillrow{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.pill{font-family:'JetBrains Mono';font-size:11px;letter-spacing:1px;color:var(--acc);background:rgba(43,255,134,.09);border:1px solid rgba(43,255,134,.3);border-radius:999px;padding:6px 13px}
+.inv{display:grid;grid-template-columns:44px 1fr;gap:14px;background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:12px}
+.inv .n{font-family:var(--disp);font-size:22px;color:var(--acc);text-shadow:0 0 16px var(--glow)}
+.inv b{display:block;color:var(--ink);font-size:14.5px;margin-bottom:3px}
+.inv span{color:var(--dim);font-size:13.5px}
+footer{border-top:1px solid var(--line);padding:26px 0 40px;text-align:center;font-family:'JetBrains Mono';font-size:12px;color:var(--mut)}
+footer a{color:var(--dim)} footer a:hover{color:var(--acc)}
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="/">
+    <svg class="drop" viewBox="0 0 24 24" fill="none">
+      <defs>
+        <linearGradient id="dg" x1="6" y1="2" x2="18" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#eafff2"/><stop offset=".5" stop-color="#84ffb2"/><stop offset="1" stop-color="#1bd66a"/></linearGradient>
+        <radialGradient id="dh" cx="9.5" cy="10.5" r="4.5" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+      </defs>
+      <path d="M12 1.5Q13.6 4.6 14 6.2Q16.5 5 20 6.5Q16.8 8.5 15.4 11Q17.6 12.4 18.6 15Q15.4 15.6 13.2 17.4Q12.8 18.4 12.6 20L13 22.6L11 22.6L11.4 20Q11.2 18.4 10.8 17.4Q8.6 15.6 5.4 15Q6.4 12.4 8.6 11Q7.2 8.5 4 6.5Q7.5 5 10 6.2Q10.4 4.6 12 1.5Z" fill="url(#dg)" stroke="rgba(255,255,255,.55)" stroke-width=".5"/>
+      <g stroke="rgba(4,32,17,.42)" stroke-width=".5" stroke-linecap="round" fill="none"><path d="M12 19.5L12 4"/><path d="M12 10.5L18.2 7.2"/><path d="M12 13.6L17.2 14.6"/><path d="M12 10.5L5.8 7.2"/><path d="M12 13.6L6.8 14.6"/></g><ellipse cx="9.4" cy="8" rx="2.1" ry="2.8" fill="url(#dh)"/>
+    </svg>
+    <b>Ivy</b>
+  </a>
+  <nav class="nav">
+    <a href="/">Overview</a><a class="on" href="/docs">Docs</a><a href="/#faq">FAQ</a>
+  </nav>
+  <div class="right">
+    <a class="btn acc sm" href="/app">Enter Testnet →</a>
+    <a class="icon" href="https://x.com/IvyRobinhood" target="_blank" rel="noopener" title="X">𝕏</a>
+  </div>
+</div></header>
+
+<div class="livestrip"><div class="wrap">
+  <span class="lv"><span class="dot"></span>LIVE</span>
+  <span class="lv">MARKETS <b id="lv-mkt">—</b></span>
+  <span class="lv">OPEN INTEREST <b id="lv-oi">—</b></span>
+  <span class="lv">RESIDUAL <b id="lv-res">—</b></span>
+  <span class="lv">HAIRCUT H <b id="lv-h">—</b></span>
+  <span class="lv">ORACLE <b>PYTH · LIVE</b></span>
+</div></div>
+
+<div class="docs">
+  <aside class="side" id="side">
+    <h5>Start</h5>
+    <a href="#overview">What is Ivy</a>
+    <a href="#quickstart">Quickstart</a>
+    <h5>The Engine</h5>
+    <a href="#engine">Structural solvency</a>
+    <a href="#haircut">Invariant 1 · Haircut H</a>
+    <a href="#adl">Invariant 2 · Queue-free ADL</a>
+    <a href="#cranks">Invariant 3 · Bounded cranks</a>
+    <a href="#recovery">Side recovery</a>
+    <h5>Trading</h5>
+    <a href="#markets">Markets & leverage</a>
+    <a href="#positions">Positions, PnL & liquidation</a>
+    <a href="#fees">Fees & funding</a>
+    <a href="#withdraw">Withdrawals & H</a>
+    <h5>Infrastructure</h5>
+    <a href="#oracle">The oracle</a>
+    <a href="#api">API reference</a>
+    <h5>Protocol</h5>
+    <a href="#token">$IVY token</a>
+    <a href="#trust">Trust & status</a>
+    <a href="#roadmap">Road to mainnet</a>
+  </aside>
+
+  <main class="content">
+    <div class="crumb"><a href="/">ivy</a> / docs</div>
+    <h1>Ivy <span class="chrome">Documentation</span></h1>
+    <p class="lede">Everything under the hood of a perpetual-futures DEX that is <b>structurally incapable of insolvency</b> — the balance sheet, the three invariants, the trading mechanics, and the honest line between what runs today and what ships after audit.</p>
+    <div class="pillrow">
+      <span class="pill">ROBINHOOD CHAIN</span><span class="pill">PERCOLATOR ENGINE</span><span class="pill">REAL PYTH PRICES</span><span class="pill">TESTNET · PAPER-TRADED</span>
+    </div>
+
+    <h2 id="overview"><span class="hash">#</span>What is Ivy</h2>
+    <p><b>Ivy is a permissionless perpetual-futures DEX on Robinhood Chain.</b> You long or short any listed token with leverage. What makes Ivy different is not the trading — it's the settlement layer underneath it.</p>
+    <p>Most perp exchanges are one bad wick away from a hole in the balance sheet: winners are owed money the exchange doesn't have, and the fix is an ADL queue that picks victims, an "insurance fund" black box, or a socialized-loss email. Ivy ports the <b>percolator</b> risk-engine architecture (originally authored by Anatoly Yakovenko), which makes that entire failure class <b>unrepresentable</b>:</p>
+    <div class="inv"><div class="n">01</div><div><b>Backed exits — the haircut H</b><span>Capital is senior, profit is junior. Nobody can ever withdraw more than actually exists on the balance sheet.</span></div></div>
+    <div class="inv"><div class="n">02</div><div><b>Queue-free ADL — A/K/F indices</b><span>When a liquidation leaves a hole, the loss socializes pro-rata across the winning side in O(1). No victim queue, no single trader punished.</span></div></div>
+    <div class="inv"><div class="n">03</div><div><b>Bounded cranks</b><span>Repricing is capped per tick, so an oracle wick can never move open interest through more loss than the exchange budgeted for.</span></div></div>
+    <div class="callout warn">Ivy today runs the full engine against <b>real, live Pyth oracle prices</b> — but positions and USDC are <b>paper-traded</b>. There is no custody of real funds. The on-chain program exists and is devnet-next; mainnet is gated on audit. See <a href="#trust" style="color:var(--acc)">Trust &amp; status</a>.</div>
+
+    <h2 id="quickstart"><span class="hash">#</span>Quickstart</h2>
+    <ol>
+      <li><b>Enter the testnet</b> — hit <a href="/app" style="color:var(--acc)">Enter Testnet</a>. No signup, no wallet signature, no risk.</li>
+      <li><b>Load an account</b> — paste any <code>0x…</code> wallet address. Your paper account is seeded with <b>10,000 USDC</b>.</li>
+      <li><b>Pick a market</b> — 8 live markets in the left rail, each marked to real Pyth prices.</li>
+      <li><b>Open a position</b> — choose Long or Short, set size and leverage, review entry / margin / est. liquidation / fee, execute.</li>
+      <li><b>Manage it</b> — watch live PnL, ROE, your liquidation price, your <b>ADL index</b>, and your haircut-adjusted withdrawable value. Close whenever.</li>
+    </ol>
+    <pre><b>tip</b> — the Solvency Engine panel at the bottom of the terminal shows the live balance
+sheet: vault V, capital C, insurance I, residual, and the haircut H. Everything in the
+docs below is visible there, live, while you trade.</pre>
+
+    <h2 id="engine"><span class="hash">#</span>The engine — structural solvency</h2>
+    <p>Every account and every market settles against one global balance sheet:</p>
+    <table>
+      <tr><th>Term</th><th>Meaning</th></tr>
+      <tr><td>V</td><td>The vault — every dollar that has actually entered the system (margin + fees).</td></tr>
+      <tr><td>C_tot</td><td>Total trader capital — the sum of everyone's deposited margin. <b>Senior.</b></td></tr>
+      <tr><td>I</td><td>The insurance buffer — accumulated from trading and liquidation fees.</td></tr>
+      <tr><td>ΣPnL⁺</td><td>The sum of all <i>unrealized winning</i> PnL — what winners would like to withdraw. <b>Junior.</b></td></tr>
+    </table>
+    <div class="formula">Residual = V − (C_tot + I)<small>the only money that can ever pay out profit — what exists beyond returning everyone's capital and the insurance buffer</small></div>
+    <p>The entire design follows from one rule: <b>profit can only be paid out of the residual.</b> Capital is always senior to profit. If the residual can't cover every open winner at once, winners are paid at a discount — the haircut — rather than the exchange writing a check it can't cash.</p>
+
+    <h2 id="haircut"><span class="hash">#</span>Invariant 1 · the haircut H</h2>
+    <div class="formula">H = clamp( min(Residual, ΣPnL⁺) / ΣPnL⁺ , 0 … 1 )<small>the fraction of open profit the balance sheet can honor right now</small></div>
+    <p>When the system is healthy, <code>H = 100%</code> and profits are fully backed — withdrawing a winner pays out in full. If a violent move creates more paper profit than residual (the exact scenario that bankrupts normal exchanges), <b>H drops below 1</b> and every winner's <i>withdrawable</i> profit scales by H. Losers and capital are untouched.</p>
+    <div class="formula">withdrawable = C + min(0, PnL) + max(0, PnL) · H<small>your capital, minus your losses in full, plus your profits at the haircut rate</small></div>
+    <ul>
+      <li><b>It's a guarantee, not a penalty.</b> H exists so that the statement "you can never withdraw more than exists" is <i>always</i> true — for everyone, simultaneously, at any instant.</li>
+      <li><b>H recovers.</b> As fees accrue, positions close, or the market normalizes, the residual refills and H returns to 100%.</li>
+      <li><b>Fresh profit matures.</b> New profit lands in a per-account reserve <code>R</code> and unlocks over a warm-up window (25 ticks) before it counts as withdrawable — so a one-tick wick can't be printed and instantly extracted.</li>
+    </ul>
+    <div class="callout note">The terminal shows H at all times, and your positions table has a dedicated <b>Withdraw (H)</b> column — you always see exactly what you could take out right now.</div>
+
+    <h2 id="adl"><span class="hash">#</span>Invariant 2 · queue-free ADL (A / K / F)</h2>
+    <p>Every market keeps two <b>side-states</b> — one for longs, one for shorts. Each side carries three lazy indices, updated in O(1) per event no matter how many accounts exist:</p>
+    <table>
+      <tr><th>Index</th><th>What it accumulates</th></tr>
+      <tr><td>A</td><td>The <b>deleverage factor</b> — starts at 1. When a liquidation shrinks a side, A shrinks proportionally (<code>A ×= OI_after / OI_before</code>). Your effective position is <code>basis × A / A_entry</code>.</td></tr>
+      <tr><td>K</td><td>The <b>mark index</b> — price moves fold in as <code>K += A × ΔP</code>. Your PnL is read from the delta between K now and K at your entry snapshot.</td></tr>
+      <tr><td>F</td><td>The <b>funding index</b> — periodic funding accrues as <code>F ±= A × rate</code>, netted between sides the same lazy way.</td></tr>
+    </table>
+    <p>When a liquidated account leaves a deficit the insurance buffer can't absorb, the loss <b>socializes into the opposing side's K index</b> — spread pro-rata across every winner on that side:</p>
+    <div class="formula">K_opposing += −Deficit / OI_opposing<small>everyone on the winning side absorbs a sliver; nobody gets singled out</small></div>
+    <ul>
+      <li><b>No ADL queue.</b> Traditional exchanges rank winners and force-close the top of the queue at a price they didn't choose. Ivy has no queue — deleveraging is a uniform, pro-rata index update.</li>
+      <li><b>No admin discretion.</b> There is no operator deciding who eats the loss. The math is the same for every account, every time.</li>
+      <li><b>Snapshot accounting.</b> Your position stores <code>(basis, A, K, F)</code> at entry; settlement just diffs the current indices against your snapshot. That's why it stays O(1).</li>
+    </ul>
+
+    <h2 id="cranks"><span class="hash">#</span>Invariant 3 · bounded cranks</h2>
+    <p>Marks move by <b>crank</b> — a permissionless tick that folds the newest oracle price into K. The crank is bounded:</p>
+    <div class="formula">|ΔP| ≤ MAX_MOVE × P_last  per tick<small>a single update can never reprice the book by more than the budgeted step</small></div>
+    <p>A flash wick on the oracle therefore can't teleport the mark through a canyon of liquidations in one step — the price walks there tick by tick, each tick settling PnL, liquidations and funding inside a bounded loss budget. Combined with H, this is what makes the worst case <i>slow and solvent</i> instead of instant and bankrupt. It also doubles as a bad-tick guard against oracle glitches.</p>
+
+    <h2 id="recovery"><span class="hash">#</span>Side recovery</h2>
+    <p>If cascading liquidations grind one side's A factor down, that side walks a state machine instead of dying:</p>
+    <table>
+      <tr><th>State</th><th>Trigger</th><th>Behavior</th></tr>
+      <tr><td>Normal</td><td>A ≥ 0.25</td><td>Business as usual — opens and closes allowed.</td></tr>
+      <tr><td>DrainOnly</td><td>A &lt; 0.25</td><td>The side is winding down: <b>closes only</b>, no new exposure. Shown as a badge in the market rail.</td></tr>
+      <tr><td>ResetPending → Normal</td><td>OI reaches 0</td><td>Indices snapshot, the <b>epoch increments</b>, A resets to 1, and the side reopens fresh. Stale positions from the old epoch settle at their snapshot.</td></tr>
+    </table>
+
+    <h2 id="markets"><span class="hash">#</span>Markets &amp; leverage</h2>
+    <table>
+      <tr><th>Market</th><th>Max leverage</th><th>Oracle feed</th></tr>
+      <tr><td>SOL-PERP</td><td>50×</td><td>Pyth · SOL/USD</td></tr>
+      <tr><td>BONK-PERP</td><td>20×</td><td>Pyth · BONK/USD</td></tr>
+      <tr><td>WIF-PERP</td><td>20×</td><td>Pyth · WIF/USD</td></tr>
+      <tr><td>POPCAT-PERP</td><td>20×</td><td>Pyth · POPCAT/USD</td></tr>
+      <tr><td>PNUT-PERP</td><td>20×</td><td>Pyth · PNUT/USD</td></tr>
+      <tr><td>GOAT-PERP</td><td>20×</td><td>Pyth · GOAT/USD</td></tr>
+      <tr><td>MOODENG-PERP</td><td>20×</td><td>Pyth · MOODENG/USD</td></tr>
+      <tr><td>FARTCOIN-PERP</td><td>20×</td><td>Pyth · FARTCOIN/USD</td></tr>
+    </table>
+    <p>Listing is <b>permissionless by design</b> — any token with a reliable oracle feed can carry a market, because the engine never takes directional risk it can't socialize safely. More markets ship as feeds are added.</p>
+
+    <h2 id="positions"><span class="hash">#</span>Positions, PnL &amp; liquidation</h2>
+    <p>Positions are <b>isolated sub-accounts</b>: each carries its own collateral <code>C</code>, entry snapshot, and liquidation price. One position blowing up never touches your others.</p>
+    <ul>
+      <li><b>Margin</b> — opening a position moves <code>size / leverage</code> from your account into the position as collateral.</li>
+      <li><b>PnL</b> — settled continuously from the K/F index deltas against your entry snapshot, marked to the live oracle.</li>
+      <li><b>Maintenance margin</b> — <code>0.50%</code> of current notional. You are liquidatable when <code>max(0, C + PnL) ≤ maintenance</code>.</li>
+      <li><b>Liquidation</b> — permissionless. The position is closed, a liquidation fee goes to insurance, the side's A shrinks, and any uninsured deficit socializes into the opposing K (see <a href="#adl" style="color:var(--acc)">ADL</a>).</li>
+      <li><b>ADL badge</b> — your positions table shows <code>ADL −x%</code> when your side's A has shrunk: that's the fraction of your effective size that liquidations have already deleveraged, transparently.</li>
+    </ul>
+
+    <h2 id="fees"><span class="hash">#</span>Fees &amp; funding</h2>
+    <table>
+      <tr><th>Fee</th><th>Rate</th><th>Where it goes</th></tr>
+      <tr><td>Trading fee</td><td>0.06% of notional</td><td>Insurance buffer I → the residual that backs H</td></tr>
+      <tr><td>Liquidation fee</td><td>0.50% of notional</td><td>Insurance buffer I</td></tr>
+      <tr><td>Funding</td><td>bilateral, periodic</td><td>Paid between sides via the F index — only accrues when both sides have open interest</td></tr>
+    </table>
+    <p>There is no fee switch pointed at a team wallet in the engine: fees exist to keep the balance sheet solvent. Fee capture for $IVY is a protocol-layer decision that ships with mainnet.</p>
+
+    <h2 id="withdraw"><span class="hash">#</span>Withdrawals &amp; H</h2>
+    <p>Your withdrawable balance is always computed under the haircut:</p>
+    <div class="formula">withdraw = C + min(0, PnL) + max(0, PnL) · H</div>
+    <ul>
+      <li>At <code>H = 100%</code> this is simply capital + PnL.</li>
+      <li>Below 100%, your capital and your losses are honored in full — only the <i>profit</i> leg scales. The stress banner and the gold H readout make this state impossible to miss.</li>
+      <li>Fresh profit sits in the warm-up reserve <code>R</code> for 25 ticks before it becomes withdrawable.</li>
+    </ul>
+
+    <h2 id="oracle"><span class="hash">#</span>The oracle</h2>
+    <ul>
+      <li><b>Source</b> — <a href="https://pyth.network" style="color:var(--acc)" target="_blank" rel="noopener">Pyth</a> price feeds via Hermes, fetched every ~2.5 seconds per market.</li>
+      <li><b>Marking</b> — each new price enters through the bounded crank (<a href="#cranks" style="color:var(--acc)">Invariant 3</a>), which also acts as a bad-tick guard.</li>
+      <li><b>Restart safety</b> — after a redeploy, the first tick re-anchors price <i>without</i> marking, so downtime gaps can't print phantom PnL.</li>
+      <li><b>Funding rate</b> — model-based on the paper market (labeled as such in the UI); on-chain funding ships with the program.</li>
+    </ul>
+
+    <h2 id="api"><span class="hash">#</span>API reference</h2>
+    <p>The testnet exposes a public read/write JSON API — the same one the terminal uses. Base URL: <code>https://ivyrobinhood.xyz</code></p>
+    <table>
+      <tr><th>Endpoint</th><th>Method</th><th>Returns</th></tr>
+      <tr><td>/api/config</td><td>GET</td><td>Token, network, markets, leverage caps, maintenance bps, oracle status.</td></tr>
+      <tr><td>/api/markets</td><td>GET</td><td>All markets: price, 24h move, funding, OI, per-side A/mode.</td></tr>
+      <tr><td>/api/market/:sym</td><td>GET</td><td>One market: price history + full long/short side-state (A, K, F, OI, epoch, mode).</td></tr>
+      <tr><td>/api/metrics</td><td>GET</td><td>The balance sheet: V, I, C_tot, ΣPnL⁺, residual, <b>haircut H</b>, OI, leaderboard.</td></tr>
+      <tr><td>/api/account</td><td>POST</td><td><code>{wallet}</code> → balances, positions with pnl / liq / withdraw(H) / adl.</td></tr>
+      <tr><td>/api/open</td><td>POST</td><td><code>{wallet, sym, side, size, lev}</code> → opens a position, returns the fill.</td></tr>
+      <tr><td>/api/close</td><td>POST</td><td><code>{wallet, id}</code> → closes a position, settles PnL under H.</td></tr>
+    </table>
+    <pre><i># watch the balance sheet live</i>
+curl -s https://ivyrobinhood.xyz/api/metrics | jq '{residual, haircut, oi}'
+
+<i># open a paper long: 2,500 USDC at 10× on WIF</i>
+curl -s -X POST https://ivyrobinhood.xyz/api/open \
+  -H 'content-type: application/json' \
+  -d '{"wallet":"0xYourAddress","sym":"WIF","side":"long","size":2500,"lev":10}'</pre>
+
+    <h2 id="token"><span class="hash">#</span>$IVY token</h2>
+    <ul>
+      <li><b>$IVY</b> is the governance and fee token of the Ivy protocol.</li>
+      <li>It is <b>separate from trading collateral</b> — the engine settles in USDC terms; $IVY never backs positions.</li>
+      <li>Planned utility: fee capture routing, listing governance (which markets/feeds get added), and insurance-buffer staking — finalized alongside the mainnet program.</li>
+      <li>The contract address appears in the site header the moment it's live. Anything else claiming to be $IVY is fake.</li>
+    </ul>
+
+    <h2 id="trust"><span class="hash">#</span>Trust &amp; status — what's real today</h2>
+    <table>
+      <tr><th>Layer</th><th>Status</th></tr>
+      <tr><td>Risk engine</td><td><b>Real &amp; running</b> — the full percolator port (H, A/K/F, bounded cranks, side recovery) settles every trade on this site.</td></tr>
+      <tr><td>Prices</td><td><b>Real</b> — live Pyth oracle feeds, ~2.5s cadence.</td></tr>
+      <tr><td>Positions &amp; USDC</td><td><b>Paper</b> — simulated balances, no deposits, no custody, zero real-fund risk.</td></tr>
+      <tr><td>On-chain program</td><td><b>Built</b> — the engine exists as a chain program (fixed-point, on-chain oracle, permissionless liquidation); deploying to testnet next.</td></tr>
+      <tr><td>Mainnet</td><td><b>Gated on audit</b> — the reference engine is experimental and unaudited; we will not custody real funds before an audit.</td></tr>
+    </table>
+    <div class="callout warn">Perpetual futures with leverage are extremely high-risk instruments — positions can liquidate to zero. Ivy's testnet is deliberately paper-traded so you can learn the engine with none of that risk. Nothing on this site is financial advice.</div>
+
+    <h2 id="roadmap"><span class="hash">#</span>Road to mainnet</h2>
+    <table>
+      <tr><th>Phase</th><th>Scope</th><th>Status</th></tr>
+      <tr><td>P0 · Testnet</td><td>Full engine + terminal on live Pyth prices, paper-traded</td><td><b style="color:var(--acc)">LIVE</b></td></tr>
+      <tr><td>P1 · Program</td><td>The engine as an on-chain program: custody, on-chain oracle, permissionless crank &amp; liquidation</td><td><b>Built</b> — devnet next</td></tr>
+      <tr><td>P2 · Hardening</td><td>Public testnet of the program, keeper network, $IVY fee routing</td><td>Next</td></tr>
+      <tr><td>P3 · Mainnet</td><td>Audited deployment, real collateral, permissionless listings</td><td>Gated on audit</td></tr>
+    </table>
+    <p style="margin-top:20px"><a class="btn acc" href="/app">Enter the testnet →</a>&nbsp;&nbsp;<a class="btn" href="/#faq">Read the FAQ</a></p>
+  </main>
+</div>
+
+<footer>Ivy · permissionless perps on Robinhood Chain · <a href="/">home</a> · <a href="/app">testnet</a> · <a href="/docs">docs</a> · <a href="https://x.com/IvyRobinhood" target="_blank" rel="noopener">@IvyRobinhood</a> · <span class="mono">$IVY</span></footer>
+
+<script>
+// live strip + sidebar highlight
+const cnt=(n)=>{if(n==null||!isFinite(n))return'—';const a=Math.abs(n);if(a>=1e9)return'$'+(n/1e9).toFixed(2)+'B';if(a>=1e6)return'$'+(n/1e6).toFixed(2)+'M';if(a>=1e3)return'$'+(n/1e3).toFixed(1)+'K';return'$'+n.toFixed(0)};
+(async()=>{try{
+  const cfg=await fetch('/api/config').then(r=>r.json());
+  if(cfg.markets)document.getElementById('lv-mkt').textContent=cfg.markets.length;
+  const m=await fetch('/api/metrics').then(r=>r.json());
+  document.getElementById('lv-oi').textContent=cnt(m.oi);
+  document.getElementById('lv-res').textContent=cnt(m.residual);
+  document.getElementById('lv-h').textContent=Math.round((m.haircut??1)*100)+'%';
+}catch(e){}})();
+const links=[...document.querySelectorAll('#side a')];
+const secs=links.map(a=>document.querySelector(a.getAttribute('href')));
+const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){const i=secs.indexOf(e.target);links.forEach(l=>l.classList.remove('on'));if(links[i])links[i].classList.add('on');}})},{rootMargin:'-20% 0px -70% 0px'});
+secs.forEach(s=>s&&io.observe(s));
+</script>
+</body>
+</html>
