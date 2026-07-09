@@ -3,31 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Drip — perps that can't go insolvent · Solana</title>
-<meta name="description" content="Drip is a permissionless perpetual-futures DEX on Solana, built on a percolator-style risk engine that makes the exchange structurally solvent. Testnet live on real Pyth prices.">
+<title>Ivy — perps that can't go insolvent · Robinhood Chain</title>
+<meta name="description" content="Ivy is a permissionless perpetual-futures DEX on Robinhood Chain, built on a percolator-style risk engine that makes the exchange structurally solvent. Testnet live on real Pyth prices.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#040a14; --bg2:#081326; --pnl:#0d1a30; --pnl2:#12243f;
-  --line:rgba(150,195,245,.16); --line2:rgba(150,195,245,.28);
-  --ink:#eaf4ff; --dim:#9fb6d6; --mut:#637ea3; --faint:#3a5274;
-  --acc:#2ff0d0; --acc2:#33c9ff; --violet:#9b8cff; --magenta:#ff5c97; --gold:#ffd166;
-  --glow:rgba(47,240,208,.22); --disp:'Audiowide',sans-serif;
-  --chrome:linear-gradient(180deg,#ffffff 0%,#e6f1ff 28%,#a9c0e0 50%,#e6f1ff 72%,#ffffff 100%);
-  --glass:linear-gradient(180deg,rgba(40,66,108,.5),rgba(10,22,42,.55));
+  --bg:#050705; --bg2:#0a0f0a; --pnl:#0b110b; --pnl2:#0f180f;
+  --line:rgba(120,235,160,.16); --line2:rgba(120,235,160,.28);
+  --ink:#eafff0; --dim:#9bccac; --mut:#5e876c; --faint:#36563c;
+  --acc:#2bff86; --acc2:#33ff96; --violet:#66ffb0; --magenta:#ff4d5e; --gold:#ffd166;
+  --glow:rgba(43,255,134,.22); --disp:'Audiowide',sans-serif;
+  --chrome:linear-gradient(180deg,#ffffff 0%,#dfffe6 28%,#82c896 50%,#dfffe6 72%,#ffffff 100%);
+  --glass:linear-gradient(180deg,rgba(20,52,30,.5),rgba(6,18,9,.55));
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body::before{content:"";position:fixed;inset:0;z-index:-2;background:
   radial-gradient(60% 45% at 82% -8%,rgba(51,201,255,.2),transparent 60%),
-  radial-gradient(55% 45% at 6% 4%,rgba(47,240,208,.16),transparent 55%),
+  radial-gradient(55% 45% at 6% 4%,rgba(43,255,134,.16),transparent 55%),
   radial-gradient(80% 60% at 50% 120%,rgba(120,90,255,.13),transparent 60%),
-  linear-gradient(180deg,#061226,#040a14 60%)}
+  linear-gradient(180deg,#080c08,#050705 60%)}
 body::after{content:"";position:fixed;inset:-20%;z-index:-1;pointer-events:none;opacity:.45;filter:blur(60px);
-  background:radial-gradient(28% 22% at 20% 28%,rgba(47,240,208,.22),transparent 60%),
+  background:radial-gradient(28% 22% at 20% 28%,rgba(43,255,134,.22),transparent 60%),
    radial-gradient(26% 20% at 80% 24%,rgba(51,201,255,.22),transparent 60%),
    radial-gradient(30% 24% at 60% 82%,rgba(120,90,255,.18),transparent 60%);
   animation:drift 26s ease-in-out infinite alternate}
@@ -44,8 +44,8 @@ a{color:inherit;text-decoration:none}
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 4px 14px rgba(0,0,0,.35);transition:.16s}
 .btn::before{content:"";position:absolute;inset:1px 1px 55% 1px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0));pointer-events:none}
 .btn:hover{border-color:var(--acc);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 20px var(--glow)}
-.btn.acc{background:linear-gradient(180deg,#9dfff0,#3ff2d6 46%,#10c5a6);color:#04241d;border:1px solid rgba(255,255,255,.55);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -7px 14px rgba(0,90,72,.35),0 6px 20px rgba(47,240,208,.4)}
+.btn.acc{background:linear-gradient(180deg,#b4ffca,#34ec86 46%,#12bd66);color:#04180d;border:1px solid rgba(255,255,255,.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -7px 14px rgba(0,90,72,.35),0 6px 20px rgba(43,255,134,.4)}
 .btn.acc:hover{filter:brightness(1.06)}
 .btn.sm{padding:9px 16px;font-size:13px}
 
@@ -54,7 +54,7 @@ a{color:inherit;text-decoration:none}
 .top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--acc),var(--acc2),transparent);opacity:.6}
 .top .wrap{display:flex;align-items:center;gap:22px;height:64px}
 .brand{display:flex;align-items:center;gap:11px}
-.brand .drop{width:30px;height:30px;filter:drop-shadow(0 2px 6px rgba(47,240,208,.5))}
+.brand .drop{width:30px;height:30px;filter:drop-shadow(0 2px 6px rgba(43,255,134,.5))}
 .brand b{font-family:var(--disp);font-size:21px;font-weight:400;letter-spacing:1px;background:var(--chrome);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 1px 0 rgba(255,255,255,.5))}
 .nav{display:flex;gap:6px;margin-left:10px}
 .nav a{font-size:13px;font-weight:600;color:var(--dim);padding:8px 13px;border-radius:999px}
@@ -66,11 +66,11 @@ a{color:inherit;text-decoration:none}
 
 /* hero */
 .hero{padding:74px 0 54px;text-align:center}
-.status-pill{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono';font-size:11px;font-weight:600;letter-spacing:1px;color:var(--acc);background:rgba(47,240,208,.1);border:1px solid rgba(47,240,208,.35);border-radius:999px;padding:7px 15px;margin-bottom:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+.status-pill{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono';font-size:11px;font-weight:600;letter-spacing:1px;color:var(--acc);background:rgba(43,255,134,.1);border:1px solid rgba(43,255,134,.35);border-radius:999px;padding:7px 15px;margin-bottom:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 .status-pill .d{width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .hero h1{font-family:var(--disp);font-size:56px;font-weight:400;letter-spacing:.5px;line-height:1.08;background:var(--chrome);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
-.hero h1 .g{background:linear-gradient(180deg,#bafff4,#2ff0d0 55%,#19b4ff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 22px rgba(47,240,208,.5))}
+.hero h1 .g{background:linear-gradient(180deg,#bcffd2,#2bff86 55%,#1bd66a);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 22px rgba(43,255,134,.5))}
 .hero .lede{max-width:640px;margin:22px auto 0;color:var(--dim);font-size:17px;line-height:1.6}
 .hero .cta{display:flex;gap:13px;justify-content:center;margin-top:30px;flex-wrap:wrap}
 .ticker{display:flex;justify-content:center;gap:16px;margin-top:42px;flex-wrap:wrap}
@@ -101,17 +101,17 @@ a{color:inherit;text-decoration:none}
 /* origin card */
 .ocard{background:var(--glass);border:1px solid var(--line);border-radius:18px;padding:26px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 14px 40px rgba(0,0,0,.4)}
 .repo{display:flex;align-items:center;gap:10px;font-family:'JetBrains Mono';font-size:13px;color:var(--dim);flex-wrap:wrap;margin-bottom:22px}
-.repo .you{color:#04241d;background:linear-gradient(180deg,#9dfff0,#2ff0d0);border-radius:6px;padding:2px 9px;font-weight:700;font-size:11px}
+.repo .you{color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86);border-radius:6px;padding:2px 9px;font-weight:700;font-size:11px}
 .repo a{color:var(--acc2)}
 .ostats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
 .ostat{background:rgba(0,0,0,.24);border:1px solid var(--line);border-radius:12px;padding:16px}
-.ostat .num{font-family:var(--disp);font-size:34px;background:linear-gradient(180deg,#d8fff7,#2ff0d0);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 14px var(--glow))}
+.ostat .num{font-family:var(--disp);font-size:34px;background:linear-gradient(180deg,#daffe4,#2bff86);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 14px var(--glow))}
 .ostat .lbl{font-family:'JetBrains Mono';font-size:10px;color:var(--mut);letter-spacing:.8px;text-transform:uppercase;margin-top:8px;line-height:1.4}
 .ocard .body{color:var(--dim);font-size:13.5px;line-height:1.7}
 .ocard .body b{color:var(--ink)}
 
 /* CTA band */
-.band{margin:24px 0;padding:48px 22px;text-align:center;border-radius:22px;background:linear-gradient(180deg,rgba(47,240,208,.1),rgba(10,22,42,.5));border:1px solid rgba(47,240,208,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 50px rgba(47,240,208,.08)}
+.band{margin:24px 0;padding:48px 22px;text-align:center;border-radius:22px;background:linear-gradient(180deg,rgba(43,255,134,.1),rgba(6,18,9,.5));border:1px solid rgba(43,255,134,.3);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 50px rgba(43,255,134,.08)}
 .band h2{font-family:var(--disp);font-size:34px;font-weight:400;letter-spacing:.5px;background:var(--chrome);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .band p{color:var(--dim);font-size:15.5px;max-width:560px;margin:16px auto 0;line-height:1.6}
 .band .cta{display:flex;gap:13px;justify-content:center;margin-top:28px;flex-wrap:wrap}
@@ -131,7 +131,7 @@ a{color:inherit;text-decoration:none}
 .ca{display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap;margin:26px 0;padding:16px 18px;background:var(--glass);border:1px solid var(--line);border-radius:14px}
 .ca .t{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
 .ca code{font-family:'JetBrains Mono';font-size:13px;color:var(--acc);word-break:break-all}
-.ca button{font-size:11px;font-weight:700;color:#04241d;background:linear-gradient(180deg,#9dfff0,#2ff0d0);border:none;border-radius:999px;padding:6px 13px}
+.ca button{font-size:11px;font-weight:700;color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86);border:none;border-radius:999px;padding:6px 13px}
 .disc{margin:20px 0;padding:16px 20px;border:1px solid rgba(255,209,102,.32);background:linear-gradient(180deg,rgba(255,209,102,.08),rgba(255,209,102,.03));border-radius:14px;font-size:12.5px;color:#e7cf9a;line-height:1.6}
 .disc b{color:var(--gold)}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:34px 0 44px;border-top:1px solid var(--line)}
@@ -146,20 +146,20 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
   <a class="brand" href="/">
     <svg class="drop" viewBox="0 0 24 24" fill="none">
       <defs>
-        <linearGradient id="dg" x1="6" y1="2" x2="18" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#eaf7ff"/><stop offset=".5" stop-color="#7fe9ff"/><stop offset="1" stop-color="#19b4ff"/></linearGradient>
+        <linearGradient id="dg" x1="6" y1="2" x2="18" y2="23" gradientUnits="userSpaceOnUse"><stop stop-color="#eafff2"/><stop offset=".5" stop-color="#84ffb2"/><stop offset="1" stop-color="#1bd66a"/></linearGradient>
         <radialGradient id="dh" cx="9.5" cy="10.5" r="4.5" gradientUnits="userSpaceOnUse"><stop stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
       </defs>
       <path d="M12 2C12 2 4 11 4 16a8 8 0 0 0 16 0c0-5-8-14-8-14Z" fill="url(#dg)" stroke="rgba(255,255,255,.55)" stroke-width=".5"/>
       <ellipse cx="9.6" cy="11" rx="2.5" ry="3.3" fill="url(#dh)"/>
     </svg>
-    <b>Drip</b>
+    <b>Ivy</b>
   </a>
   <nav class="nav">
     <a href="#engine">Engine</a><a href="#origin">Origin</a><a href="#faq">FAQ</a>
   </nav>
   <div class="right">
     <a class="btn acc sm" href="/app">Enter Testnet →</a>
-    <a class="icon" href="https://x.com/DripPerps" target="_blank" rel="noopener" title="X">𝕏</a>
+    <a class="icon" href="https://x.com/IvyPerps" target="_blank" rel="noopener" title="X">𝕏</a>
   </div>
 </div></header>
 
@@ -167,7 +167,7 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
 <section class="hero"><div class="wrap">
   <div class="status-pill"><span class="d"></span>TESTNET LIVE ON REAL PYTH PRICES · MAINNET AFTER AUDIT</div>
   <h1>Perps that <span class="g">can't go insolvent.</span></h1>
-  <p class="lede">Drip is a permissionless perpetual-futures DEX on Solana, built on a <b style="color:var(--ink)">percolator-style risk engine</b>. Capital is senior, profit is junior — so the exchange is solvent by construction. No ADL queues. No insurance black box. No admin.</p>
+  <p class="lede">Ivy is a permissionless perpetual-futures DEX on Robinhood Chain, built on a <b style="color:var(--ink)">percolator-style risk engine</b>. Capital is senior, profit is junior — so the exchange is solvent by construction. No ADL queues. No insurance black box. No admin.</p>
   <div class="cta">
     <a class="btn acc" href="/app">Enter Testnet →</a>
     <a class="btn" href="#engine">How the engine works</a>
@@ -191,11 +191,11 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
     <div class="rows">
       <div class="row"><div class="tag">VAULT</div><div><h3>Oracle-priced liquidity vault</h3><p>Every trade fills against a shared USDC vault at the oracle price ± spread. Liquidity providers are the house — they earn the spread and fees. No order book, no fragmented liquidity, instant fills on any size the vault can back.</p></div></div>
       <div class="row"><div class="tag">RESIDUAL · H</div><div><h3>Backed exits — the haircut</h3><p>Capital is a senior claim; profit is junior. The exchange only pays profit out of its real residual buffer. If open profit ever exceeds it, every winner is paid the same fraction <b>H</b> — instantly and equally. You can never withdraw more value than actually exists.</p><div class="f">Residual = V − (C + I) &nbsp;·&nbsp; H = min(Residual, ΣPnL⁺) ÷ ΣPnL⁺</div></div></div>
-      <div class="row"><div class="tag v">A / K / F</div><div><h3>Queue-free deleveraging</h3><p>Most exchanges run an ADL queue that force-closes one unlucky winner to cover a blow-up. Drip doesn't. Three lazy per-side indices socialize a liquidation across the whole side, pro-rata, in O(1). No victim is chosen — the loss is shared in microscopic, fair slices.</p></div></div>
+      <div class="row"><div class="tag v">A / K / F</div><div><h3>Queue-free deleveraging</h3><p>Most exchanges run an ADL queue that force-closes one unlucky winner to cover a blow-up. Ivy doesn't. Three lazy per-side indices socialize a liquidation across the whole side, pro-rata, in O(1). No victim is chosen — the loss is shared in microscopic, fair slices.</p></div></div>
       <div class="row"><div class="tag v">CRANK</div><div><h3>Bounded cranks</h3><p>Repricing is capped per slot: a single oracle wick or funding spike physically cannot move open interest through more loss than the exchange budgeted for. The cause of most "got liquidated on a wick" stories is closed off at the protocol level.</p></div></div>
       <div class="row"><div class="tag g">PYTH</div><div><h3>Real oracle prices, live now</h3><p>Every market marks to a live Pyth feed today — in paper mode. The marks, funding, liquidations and the haircut you see on testnet are the genuine engine running on genuine prices. Only custody is simulated.</p></div></div>
       <div class="row"><div class="tag g">KEEPERS</div><div><h3>Permissionless keepers</h3><p>Anyone can run a keeper to mark prices and liquidate underwater positions, paid by liquidation fees. There is no privileged operator who can halt the book or front-run you. The exchange runs itself.</p></div></div>
-      <div class="row"><div class="tag">KANI · 471</div><div><h3>Formally verified math</h3><p>The percolator risk engine Drip follows ships <b>471 model-checking proofs</b> covering the H + A/K/F math — haircut conservation, ADL fairness, funding zero-sum. The solvency guarantee isn't marketing; it's proven.</p></div></div>
+      <div class="row"><div class="tag">KANI · 471</div><div><h3>Formally verified math</h3><p>The percolator risk engine Ivy follows ships <b>471 model-checking proofs</b> covering the H + A/K/F math — haircut conservation, ADL fairness, funding zero-sum. The solvency guarantee isn't marketing; it's proven.</p></div></div>
     </div>
   </div>
 </div></section>
@@ -206,16 +206,16 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
   <div class="split">
     <div class="lead">
       <h2>Anatoly's math. Shipped as a product.</h2>
-      <p>Anatoly Yakovenko (Solana's co-founder) authored the H + A/K/F risk-engine math and an open-source reference. <b>Drip is a faithful port of that engine</b> wrapped into something you can actually trade — a live exchange, not a reference implementation.</p>
+      <p>Anatoly Yakovenko (Solana's co-founder) authored the H + A/K/F risk-engine math and an open-source reference. <b>Ivy is a faithful port of that engine</b> wrapped into something you can actually trade — a live exchange, not a reference implementation.</p>
     </div>
     <div class="ocard">
-      <div class="repo">github.com/ <a href="https://github.com/dcccrypto/percolator" target="_blank" rel="noopener">dcccrypto/percolator</a> → <span class="you">DRIP</span> ported & wrapped</div>
+      <div class="repo">github.com/ <a href="https://github.com/dcccrypto/percolator" target="_blank" rel="noopener">dcccrypto/percolator</a> → <span class="you">IVY</span> ported & wrapped</div>
       <div class="ostats">
         <div class="ostat"><div class="num">3</div><div class="lbl">structural invariants</div></div>
         <div class="ostat"><div class="num">8</div><div class="lbl">live perp markets</div></div>
         <div class="ostat"><div class="num">471</div><div class="lbl">proofs behind the math</div></div>
       </div>
-      <div class="body">What Drip adds on top of the reference engine: a live <b>paper exchange on real Pyth prices</b> (trade it now), a sleek trading terminal, a live solvency dashboard, and a real <b>on-chain Anchor program</b> — USDC custody in a program vault, on-chain Pyth, and the full engine enforced in-program — built and devnet-ready. <b>Mainnet custody opens only after an external audit.</b> We'd rather ship late than ship a protocol that loses your funds.</div>
+      <div class="body">What Ivy adds on top of the reference engine: a live <b>paper exchange on real Pyth prices</b> (trade it now), a sleek trading terminal, a live solvency dashboard, and a real <b>on-chain Anchor program</b> — USDC custody in a program vault, on-chain Pyth, and the full engine enforced in-program — built and devnet-ready. <b>Mainnet custody opens only after an external audit.</b> We'd rather ship late than ship a protocol that loses your funds.</div>
     </div>
   </div>
 </div></section>
@@ -227,11 +227,11 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
     <p>Trade every mechanic — mark-to-market, funding, liquidations, the haircut — live on real oracle prices, with paper USDC. No signup, no signing, no risk. See the solvency engine work in real time.</p>
     <div class="cta">
       <a class="btn acc" href="/app">Enter Testnet →</a>
-      <a class="btn" href="https://x.com/DripPerps" target="_blank" rel="noopener">Follow for mainnet 𝕏</a>
+      <a class="btn" href="https://x.com/IvyPerps" target="_blank" rel="noopener">Follow for mainnet 𝕏</a>
     </div>
   </div>
   <div class="ca" id="cabar" style="display:none">
-    <span class="t">$DRIP CA</span><code id="ca-mint"></code><button id="ca-copy">Copy</button>
+    <span class="t">$IVY CA</span><code id="ca-mint"></code><button id="ca-copy">Copy</button>
   </div>
 </div></section>
 
@@ -239,16 +239,16 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
 <section class="section" id="faq"><div class="wrap">
   <div class="eyebrow">FAQ</div>
   <div class="split">
-    <div class="lead"><h2>What you're probably wondering.</h2><p>Straight answers. If something's missing, ask on <a href="https://x.com/DripPerps" target="_blank" rel="noopener" style="color:var(--acc)">X</a>.</p></div>
+    <div class="lead"><h2>What you're probably wondering.</h2><p>Straight answers. If something's missing, ask on <a href="https://x.com/IvyPerps" target="_blank" rel="noopener" style="color:var(--acc)">X</a>.</p></div>
     <div class="faq">
-      <details open><summary>Is this live with real money?</summary><div class="a">No — and that's deliberate. Pre-audit, public trading puts user funds at risk, and we won't do that. Today Drip runs in <b>testnet / paper mode on real Pyth oracle prices</b>: the engine, marks, funding, liquidations and the haircut are all genuinely live — only positions and USDC are simulated, so nothing is at risk. Real custody opens the moment the audit clears, not a day before.</div></details>
+      <details open><summary>Is this live with real money?</summary><div class="a">No — and that's deliberate. Pre-audit, public trading puts user funds at risk, and we won't do that. Today Ivy runs in <b>testnet / paper mode on real Pyth oracle prices</b>: the engine, marks, funding, liquidations and the haircut are all genuinely live — only positions and USDC are simulated, so nothing is at risk. Real custody opens the moment the audit clears, not a day before.</div></details>
       <details><summary>When does mainnet open?</summary><div class="a">After the external audit clears — we're targeting <b>Q4 2026</b>, gated on that sign-off. The on-chain program is already built: real USDC custody in a program vault, on-chain Pyth, and the full percolator engine enforced in-program — with devnet deployment next. Public trading opens the instant the audit passes. We won't ship a protocol that loses your funds to hit a date.</div></details>
       <details><summary>What is "percolator," and what's the haircut?</summary><div class="a">Percolator is a risk-engine design for permissionless perps that makes the exchange <b>structurally solvent</b>. Its core trick is the haircut <b>H</b>: profit is only ever paid from the exchange's real residual buffer, so total payouts can never exceed what exists. Your deposited capital is always senior and untouched.</div></details>
       <details><summary>How is liquidation fair without an ADL queue?</summary><div class="a">When a position blows past its margin, the loss is absorbed by the <b>A/K/F side indices</b> — spread proportionally across everyone on that side in tiny slices, in O(1). No single "victim" gets their winning trade force-closed the way ADL queues do on other venues.</div></details>
       <details><summary>Can the exchange go insolvent?</summary><div class="a">By construction, no. The core invariant is that withdrawals can never exceed the vault balance. In a worst case, open profits are <b>haircut</b> (paid at a fraction) — but capital is never lost to insolvency, and the book never freezes.</div></details>
-      <details><summary>How is this different from Hyperliquid or Aster?</summary><div class="a">Those are excellent order-book / vAMM venues with traditional ADL and insurance funds. Drip's difference is the <b>solvency model</b>: oracle-priced vault, a haircut instead of socialized bad debt, queue-free deleveraging, and bounded cranks — all formally verified. Different risk engine, not just a different UI.</div></details>
+      <details><summary>How is this different from Hyperliquid or Aster?</summary><div class="a">Those are excellent order-book / vAMM venues with traditional ADL and insurance funds. Ivy's difference is the <b>solvency model</b>: oracle-priced vault, a haircut instead of socialized bad debt, queue-free deleveraging, and bounded cranks — all formally verified. Different risk engine, not just a different UI.</div></details>
       <details><summary>Why can I trade any token?</summary><div class="a">Markets are permissionless and oracle-priced. Any token with a price feed can have a perp market — no order book or dedicated market makers required, because the vault is always the counterparty.</div></details>
-      <details><summary>What is $DRIP?</summary><div class="a">The community and fee token, launched on Pump.fun. It's separate from trading collateral (USDC). Protocol fees and incentives route to $DRIP. The token being live does not mean real-money trading is live — that's gated on the audit.</div></details>
+      <details><summary>What is $IVY?</summary><div class="a">The community and fee token, launched on Robinhood Chain. It's separate from trading collateral (USDC). Protocol fees and incentives route to $IVY. The token being live does not mean real-money trading is live — that's gated on the audit.</div></details>
       <details><summary>Are the prices real?</summary><div class="a">Yes. Every market pulls a <b>live Pyth oracle feed</b> right now. What's simulated on testnet is custody and settlement — not the prices or the engine math.</div></details>
       <details><summary>Is leverage risky?</summary><div class="a">Extremely. Perpetual futures can liquidate your entire margin to zero in seconds. Understand maintenance margin, size small, and never trade money you can't afford to lose. This is high-risk by nature, even before mainnet.</div></details>
     </div>
@@ -256,10 +256,10 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
 </div></section>
 
 <div class="wrap">
-  <div class="disc"><b>Testnet · paper-traded.</b> Drip runs on real Pyth oracle prices and a faithful port of the percolator solvency engine — the markets, marks, funding, liquidations and haircut are all live. Trading itself is <b>simulated</b>, with no custody and no real funds at risk. $DRIP is a real token; on-chain custody &amp; settlement are a later, audited phase. Perpetual futures with leverage are extremely high-risk and can be liquidated to zero. Not financial advice.</div>
+  <div class="disc"><b>Testnet · paper-traded.</b> Ivy runs on real Pyth oracle prices and a faithful port of the percolator solvency engine — the markets, marks, funding, liquidations and haircut are all live. Trading itself is <b>simulated</b>, with no custody and no real funds at risk. $IVY is a real token; on-chain custody &amp; settlement are a later, audited phase. Perpetual futures with leverage are extremely high-risk and can be liquidated to zero. Not financial advice.</div>
 </div>
 
-<footer>Drip · permissionless perps on Solana · <a href="/app">testnet</a> · <a href="https://x.com/DripPerps" target="_blank" rel="noopener">@DripPerps</a> · <span class="mono">$DRIP</span></footer>
+<footer>Ivy · permissionless perps on Robinhood Chain · <a href="/app">testnet</a> · <a href="https://x.com/IvyPerps" target="_blank" rel="noopener">@Ivy</a> · <span class="mono">$IVY</span></footer>
 
 <script>
 const cnt=(n)=>{if(n==null||!isFinite(n))return'—';const a=Math.abs(n);if(a>=1e9)return'$'+(n/1e9).toFixed(2)+'B';if(a>=1e6)return'$'+(n/1e6).toFixed(2)+'M';if(a>=1e3)return'$'+(n/1e3).toFixed(1)+'K';return'$'+n.toFixed(0)};

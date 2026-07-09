@@ -25,7 +25,7 @@ function toast(msg, kind) { const t = $('toast'); t.textContent = msg; t.classNa
 function setConnected() { $('connect').textContent = wallet ? (wallet.slice(0, 4) + '…' + wallet.slice(-4)) : 'Connect'; }
 $('connect').onclick = async () => {
   if (chainMode) {
-    try { const pk = await CHAIN.connect(); wallet = pk; setConnected(); toast('Phantom connected', 'ok'); await loadAccount(); }
+    try { const pk = await CHAIN.connect(); wallet = pk; setConnected(); toast('wallet connected', 'ok'); await loadAccount(); }
     catch (e) { toast(e.message || 'connect failed', 'err'); }
     return;
   }
@@ -34,7 +34,7 @@ $('connect').onclick = async () => {
 $('wmodal').onclick = (e) => { if (e.target.id === 'wmodal') $('wmodal').classList.remove('on'); };
 $('wsave').onclick = async () => {
   const v = $('waddr').value.trim();
-  if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v)) return toast('paste a valid Solana address', 'err');
+  if (!/^0x[a-fA-F0-9]{40}$/.test(v)) return toast('paste a valid 0x wallet address', 'err');
   wallet = v; localStorage.setItem('drip_w', v); setConnected(); $('wmodal').classList.remove('on'); toast('connected', 'ok'); await loadAccount();
 };
 function needWallet() { if (!wallet) { $('wmodal').classList.add('on'); return true; } return false; }
@@ -160,7 +160,7 @@ function drawChart() {
   const X = (i) => pad.l + (w - pad.l - pad.r) * (i / (H.length - 1));
   const Y = (v) => pad.t + (h - pad.t - pad.b) * (1 - (v - lo) / (hi - lo));
   const up = H[H.length - 1] >= H[0];
-  const col = up ? '#1fe3a4' : '#ff4d6d';
+  const col = up ? '#1fe3a4' : '#ff4d5e';
   // grid
   c.strokeStyle = 'rgba(255,255,255,.04)'; c.lineWidth = 1; c.font = "10px 'JetBrains Mono'"; c.textBaseline = 'middle';
   for (let g = 0; g <= 4; g++) {
@@ -220,8 +220,8 @@ function updateOrderReadout() {
 $('submit').onclick = async () => {
   const size = +$('size').value || 0; if (size <= 0) return toast('enter a size', 'err');
   if (chainMode) {
-    if (!CHAIN.me) return toast('connect Phantom first', 'err');
-    try { toast('confirm in Phantom…'); await CHAIN.open(sel, side, size, +$('lev').value); toast(side.toUpperCase() + ' ' + sel + ' opened on-chain', 'ok'); await loadAccount(); loadMetrics(); }
+    if (!CHAIN.me) return toast('connect wallet first', 'err');
+    try { toast('confirm in wallet…'); await CHAIN.open(sel, side, size, +$('lev').value); toast(side.toUpperCase() + ' ' + sel + ' opened on-chain', 'ok'); await loadAccount(); loadMetrics(); }
     catch (e) { toast(e.message || 'transaction failed', 'err'); }
     return;
   }
@@ -239,7 +239,7 @@ document.addEventListener('click', async (e) => {
   const cb = e.target.closest('[data-close]');
   if (cb) {
     if (chainMode) {
-      try { toast('confirm in Phantom…'); await CHAIN.close(cb.dataset.close); toast('position closed on-chain', 'ok'); await loadAccount(); loadMetrics(); }
+      try { toast('confirm in wallet…'); await CHAIN.close(cb.dataset.close); toast('position closed on-chain', 'ok'); await loadAccount(); loadMetrics(); }
       catch (e2) { toast(e2.message || 'transaction failed', 'err'); }
       return;
     }
@@ -259,8 +259,8 @@ async function setMode(devnet) {
       if (!CHAIN) { const mod = await import('/client/src/chain.js'); CHAIN = await mod.initChain(cfg.chain); }
       chainMode = true; wallet = ''; setConnected();
       document.getElementById('chainfunds').style.display = 'flex';
-      $('free').textContent = 'connect Phantom';
-      toast('Devnet mode — connect Phantom to trade on-chain', 'ok');
+      $('free').textContent = 'connect wallet';
+      toast('Devnet mode — connect wallet to trade on-chain', 'ok');
     } catch (e) { toast(e.message || 'on-chain unavailable', 'err'); document.getElementById('net-demo').click(); return; }
   } else {
     chainMode = false; wallet = localStorage.getItem('drip_w') || ''; setConnected();
@@ -272,10 +272,10 @@ async function setMode(devnet) {
   else if (wallet) await loadAccount(); else renderAccount();
 }
 async function chainFund(isDeposit) {
-  if (!CHAIN || !CHAIN.me) return toast('connect Phantom first', 'err');
+  if (!CHAIN || !CHAIN.me) return toast('connect wallet first', 'err');
   const v = parseFloat(window.prompt((isDeposit ? 'Deposit' : 'Withdraw') + ' USDC amount:', '100'));
   if (!v || v <= 0) return;
-  try { toast('confirm in Phantom…'); await (isDeposit ? CHAIN.deposit(v) : CHAIN.withdraw(v)); toast((isDeposit ? 'deposited ' : 'withdrew ') + v + ' USDC', 'ok'); await loadAccount(); loadMetrics(); }
+  try { toast('confirm in wallet…'); await (isDeposit ? CHAIN.deposit(v) : CHAIN.withdraw(v)); toast((isDeposit ? 'deposited ' : 'withdrew ') + v + ' USDC', 'ok'); await loadAccount(); loadMetrics(); }
   catch (e) { toast(e.message || 'transaction failed', 'err'); }
 }
 

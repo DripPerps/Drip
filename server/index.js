@@ -1,4 +1,4 @@
-// DRIP — a permissionless perps DEX powered by a faithful (simulated) port of the
+// IVY — a permissionless perps DEX powered by a faithful (simulated) port of the
 // PERCOLATOR risk engine (dcccrypto/percolator, spec v16.8.3). DEMO / simulation.
 //
 // The point of percolator is STRUCTURAL SOLVENCY, implemented with three invariants:
@@ -11,7 +11,7 @@
 //   + Side-recovery state machine: Normal → DrainOnly (A<MIN_A) → ResetPending (OI=0, epoch++) → Normal.
 //
 // SIMULATED off-chain with floats (the real engine is no_std fixed-point, formally verified —
-// 471 Kani proofs). No real custody. $DRIP = gov/fee token (Pump.fun). Dependency-free Node.
+// 471 Kani proofs). No real custody. $IVY = gov/fee token (Robinhood Chain). Dependency-free Node.
 'use strict';
 const http = require('http');
 const fs = require('fs');
@@ -21,19 +21,19 @@ const { randomBytes } = require('crypto');
 const PORT = process.env.PORT || 8105;
 const ROOT = path.join(__dirname, '..');
 const DATA_PATH = process.env.DATA_PATH || path.join(ROOT, 'data.json');
-const TOKEN = 'DRIP';
-const DRIP_MINT = process.env.DRIP_MINT || '';
+const TOKEN = 'IVY';
+const IVY_MINT = process.env.IVY_MINT || '';
 const SEED_USDC = +(process.env.SEED_USDC || 10000);
 
 // On-chain (Phase 1.5): set these once the Anchor program is deployed to enable
-// the "Devnet" mode that routes trades through the program via Phantom. Until then
+// the "Devnet" mode that routes trades through the program via wallet. Until then
 // CHAIN is null and the site stays in off-chain demo mode.
-const CHAIN = process.env.DRIP_PROGRAM_ID ? {
-  programId: process.env.DRIP_PROGRAM_ID,
+const CHAIN = process.env.IVY_PROGRAM_ID ? {
+  programId: process.env.IVY_PROGRAM_ID,
   usdcMint: process.env.USDC_MINT || '',
   cluster: process.env.SOLANA_CLUSTER || 'devnet',
   rpc: process.env.SOLANA_RPC || '',
-  dripMint: DRIP_MINT,
+  ivyMint: IVY_MINT,
 } : null;
 
 // ---- engine config (analogues of the spec's cfg_* knobs) ----
@@ -107,7 +107,7 @@ if (db.V == null) db.V = 35000; if (db.I == null) db.I = 8000;
 if (db.mkt) for (const s of db.mkt) { const m = M(s.sym); if (!m) continue; m.long = s.long; m.short = s.short; m.P_last = s.P_last; m.base = s.base; m.dayRef = s.dayRef; m.seenLive = true; m.bootCatch = true; }
 function snapMkt() { return MKT.map((m) => ({ sym: m.sym, long: m.long, short: m.short, P_last: m.P_last, base: m.base, dayRef: m.dayRef })); }
 let saveT = null; const save = () => { if (saveT) return; saveT = setTimeout(() => { saveT = null; db.mkt = snapMkt(); try { fs.writeFileSync(DATA_PATH, JSON.stringify(db)); } catch (e) {} }, 1000); };
-const isWallet = (s) => /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(s);
+const isWallet = (s) => /^0x[a-fA-F0-9]{40}$/.test(s);
 function W(a) { return db.wallets[a] || (db.wallets[a] = { usdc: SEED_USDC, realized: 0 }); }
 const num = (v, hi) => { let n = +v; if (!isFinite(n) || n <= 0) return 0; return hi != null ? Math.min(n, hi) : n; };
 
@@ -258,7 +258,7 @@ function metrics() {
   let oi = 0; for (const m of MKT) oi += (m.long.OI + m.short.OI) * m.px;
   const lb = Object.entries(db.wallets).filter(([a]) => !a.startsWith('Bot')).map(([a, w]) => ({ wallet: a.slice(0, 4) + '…' + a.slice(-4), realized: w.realized, open: db.pos.filter((p) => p.wallet === a).length }))
     .filter((x) => x.realized !== 0 || x.open > 0).sort((a, b) => b.realized - a.realized).slice(0, 8);
-  return { token: TOKEN, mint: DRIP_MINT, oi, traders: Object.keys(db.wallets).filter((a) => !a.startsWith('Bot')).length, openPositions: db.pos.length,
+  return { token: TOKEN, mint: IVY_MINT, oi, traders: Object.keys(db.wallets).filter((a) => !a.startsWith('Bot')).length, openPositions: db.pos.length,
     priceLive: PRICE_OK, priceSource: 'Pyth',
     vault: s.V, insurance: s.I, capital: s.C_tot, profit: s.pnlPos, residual: s.residual, haircut: s.H, pending: s.pendR, dripPrice: +(0.002 + Math.max(0, s.residual) / 2e7).toFixed(6), leaderboard: lb };
 }
@@ -271,13 +271,13 @@ function body(req) { return new Promise((r) => { let b = ''; req.on('data', (c) 
 
 const server = http.createServer(async (req, res) => {
   const u = req.url.split('?')[0];
-  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: DRIP_MINT, network: 'solana', priceLive: PRICE_OK, priceSource: 'Pyth', lastPrice: LAST_OK, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp })), chain: CHAIN });
+  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: IVY_MINT, network: 'robinhood-chain', priceLive: PRICE_OK, priceSource: 'Pyth', lastPrice: LAST_OK, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp })), chain: CHAIN });
   if (u === '/api/markets') return json(res, 200, markets());
   if (u === '/api/metrics') return json(res, 200, metrics());
   if (u.startsWith('/api/market/')) { const d = marketDetail(u.split('/')[3]); return d ? json(res, 200, d) : json(res, 404, { error: 'no market' }); }
   if (req.method === 'POST') {
     const d = await body(req);
-    if (u === '/api/account') { if (!isWallet(d.wallet || '')) return json(res, 200, { error: 'paste a valid Solana wallet' }); return json(res, 200, account(d.wallet)); }
+    if (u === '/api/account') { if (!isWallet(d.wallet || '')) return json(res, 200, { error: 'paste a valid 0x wallet' }); return json(res, 200, account(d.wallet)); }
     if (!isWallet(d.wallet || '')) return json(res, 200, { error: 'connect a wallet first' });
     if (u === '/api/open') { const r = openPos(d.wallet, d.market, d.side === 'short' ? 'short' : 'long', d.sizeUsd, d.lev); if (r.error) return json(res, 200, r); save(); return json(res, 200, Object.assign({ ok: true }, account(d.wallet))); }
     if (u === '/api/close') { const p = db.pos.find((x) => x.id === d.id && x.wallet === d.wallet); if (!p) return json(res, 200, { error: 'no position' }); const r = closePos(d.id); if (r.error) return json(res, 200, r); save(); return json(res, 200, Object.assign({ ok: true, closedPnl: r.closedPnl }, account(d.wallet))); }
@@ -287,7 +287,7 @@ const server = http.createServer(async (req, res) => {
 
 (async () => {
   await fetchPrices();                          // seed real prices before accepting traffic
-  server.listen(PORT, () => console.log('DRIP × percolator engine on :' + PORT + ' — ' + MKT.length + ' markets · Pyth live=' + PRICE_OK));
+  server.listen(PORT, () => console.log('IVY × percolator engine on :' + PORT + ' — ' + MKT.length + ' markets · Pyth live=' + PRICE_OK));
   setInterval(fetchPrices, 2500);               // live oracle refresh
   setInterval(tick, SEC * 1000);                // settle / liquidate / recover
 })();
