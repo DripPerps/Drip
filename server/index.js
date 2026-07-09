@@ -22,7 +22,7 @@ const PORT = process.env.PORT || 8105;
 const ROOT = path.join(__dirname, '..');
 const DATA_PATH = process.env.DATA_PATH || path.join(ROOT, 'data.json');
 const TOKEN = 'IVY';
-const IVY_MINT = process.env.IVY_MINT || '';
+const IVY_MINT = process.env.IVY_MINT || '0x1B138871b09356F0FD75FF660D1c45D011F1170F'; // $IVY · Robinhood Chain (live)
 const SEED_USDC = +(process.env.SEED_USDC || 10000);
 
 // On-chain (Phase 1.5): set these once the Anchor program is deployed to enable
