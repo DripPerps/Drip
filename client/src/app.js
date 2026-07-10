@@ -283,6 +283,17 @@ async function chainFund(isDeposit) {
 setConnected();
 (async function boot() {
   cfg = await api('/api/config');
+  // deep-link from the landing ecosystem board: /app?m=SYM&side=long|short
+  try {
+    const q = new URLSearchParams(location.search);
+    const qm = (q.get('m') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (qm) sel = qm;
+    const qs = (q.get('side') || '').toLowerCase();
+    if (qs === 'long' || qs === 'short') {
+      side = qs;
+      document.querySelectorAll('.ls button').forEach((b) => b.classList.toggle('on', b.dataset.side === side));
+    }
+  } catch (e) {}
   if (cfg && cfg.chain && cfg.chain.programId) {
     const nt = document.getElementById('nettoggle'); if (nt) nt.style.display = 'inline-flex';
     document.getElementById('net-demo').onclick = () => setMode(false);

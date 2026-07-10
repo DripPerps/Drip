@@ -143,6 +143,32 @@ a{color:inherit;text-decoration:none}
 .ca .t{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:1px}
 .ca code{font-family:'JetBrains Mono';font-size:13px;color:var(--acc);word-break:break-all}
 .ca button{font-size:11px;font-weight:700;color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86);border:none;border-radius:999px;padding:6px 13px}
+/* robinhood ecosystem board */
+.eco-board{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.eco-c{position:relative;padding:16px 16px 14px;border:1px solid var(--line);border-radius:14px;background:var(--glass);overflow:hidden;transition:border-color .15s,transform .15s}
+.eco-c:hover{border-color:var(--line2);transform:translateY(-2px)}
+.eco-c .top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.eco-c .sym{font-weight:800;font-size:16px;letter-spacing:.3px}
+.eco-c .lev{font-family:'JetBrains Mono';font-size:11px;color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86);padding:2px 8px;border-radius:999px;font-weight:700}
+.eco-c .px{font-family:'JetBrains Mono';font-size:15px;margin-top:8px}
+.eco-c .chg{font-family:'JetBrains Mono';font-size:12px;margin-left:6px}
+.eco-c .chg.up{color:var(--acc)}.eco-c .chg.down{color:var(--magenta)}
+.eco-c .row{display:flex;justify-content:space-between;margin-top:10px;font-family:'JetBrains Mono';font-size:11px;color:var(--mut)}
+.eco-c .row b{color:var(--dim);font-weight:600}
+.eco-c .act{display:flex;gap:6px;margin-top:12px}
+.eco-c .act a{flex:1;text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:9px;text-decoration:none}
+.eco-c .act .l{color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86)}
+.eco-c .act .s{color:var(--magenta);border:1px solid rgba(255,77,94,.4)}
+.eco-c .seed{position:absolute;top:0;right:0;font-family:'JetBrains Mono';font-size:9px;letter-spacing:1px;color:var(--mut);background:rgba(120,235,160,.08);padding:3px 8px;border-bottom-left-radius:9px}
+.eco-list{margin-top:22px;padding:18px 20px;border:1px dashed var(--line2);border-radius:14px;background:linear-gradient(180deg,rgba(20,52,30,.28),rgba(6,18,9,.3))}
+.eco-list-h{font-size:14px;color:var(--dim);margin-bottom:12px}.eco-list-h b{color:var(--ink)}
+.eco-list-row{display:flex;gap:10px;flex-wrap:wrap}
+.eco-list-row input{flex:1;min-width:220px;font-family:'JetBrains Mono';font-size:13px;color:var(--ink);background:var(--bg);border:1px solid var(--line2);border-radius:10px;padding:11px 14px}
+.eco-list-row input:focus{outline:none;border-color:var(--acc)}
+.eco-list-row button{font-weight:700;color:#04180d;background:linear-gradient(180deg,#b4ffca,#2bff86);border:none;border-radius:10px;padding:11px 20px;cursor:pointer}
+.eco-list-row button:disabled{opacity:.5;cursor:default}
+.eco-msg{margin-top:10px;font-family:'JetBrains Mono';font-size:12.5px;min-height:16px}
+.eco-msg.ok{color:var(--acc)}.eco-msg.err{color:var(--magenta)}
 .disc{margin:20px 0;padding:16px 20px;border:1px solid rgba(255,209,102,.32);background:linear-gradient(180deg,rgba(255,209,102,.08),rgba(255,209,102,.03));border-radius:14px;font-size:12.5px;color:#e7cf9a;line-height:1.6}
 .disc b{color:var(--gold)}
 footer{text-align:center;color:var(--mut);font-size:12.5px;padding:34px 0 44px;border-top:1px solid var(--line)}
@@ -223,7 +249,7 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
       <div class="repo">github.com/ <a href="https://github.com/dcccrypto/percolator" target="_blank" rel="noopener">dcccrypto/percolator</a> → <span class="you">IVY</span> ported & wrapped</div>
       <div class="ostats">
         <div class="ostat"><div class="num">3</div><div class="lbl">structural invariants</div></div>
-        <div class="ostat"><div class="num">10</div><div class="lbl">live perp markets</div></div>
+        <div class="ostat"><div class="num" id="os-mkt">14</div><div class="lbl">live perp markets</div></div>
         <div class="ostat"><div class="num">471</div><div class="lbl">proofs behind the math</div></div>
       </div>
       <div class="body">What Ivy adds on top of the reference engine: a live <b>paper exchange on real Pyth prices</b> (trade it now), a sleek trading terminal, a live solvency dashboard, and a real <b>on-chain Anchor program</b> — USDC custody in a program vault, on-chain Pyth, and the full engine enforced in-program — built and devnet-ready. <b>Mainnet custody opens only after an external audit.</b> We'd rather ship late than ship a protocol that loses your funds.</div>
@@ -243,6 +269,25 @@ footer a{color:var(--dim)}footer a:hover{color:var(--acc)}
   </div>
   <div class="ca" id="cabar" style="display:none">
     <span class="t">$IVY CA</span><code id="ca-mint"></code><button id="ca-copy">Copy</button>
+  </div>
+</div></section>
+
+<!-- ROBINHOOD ECOSYSTEM -->
+<section class="section" id="eco"><div class="wrap">
+  <div class="eyebrow">THE ROBINHOOD ECOSYSTEM · LIVE</div>
+  <h2 style="font-family:var(--disp);font-size:clamp(28px,4vw,44px);line-height:1.05;margin:10px 0 8px">Every coin on Robinhood Chain.<br><span class="g">Leveraged.</span></h2>
+  <p style="color:var(--dim);max-width:680px;margin-bottom:6px">Ivy auto-discovers the Robinhood ecosystem straight from on-chain liquidity and lists each coin as a live perp — long or short, on an engine that can't go insolvent. Leverage scales to real depth. <b style="color:var(--ink)">No listing committee. No market makers. No permission.</b></p>
+  <div id="eco-meta" class="mono" style="color:var(--mut);font-size:12px;margin-bottom:18px">loading the ecosystem…</div>
+
+  <div id="eco-board" class="eco-board"></div>
+
+  <div class="eco-list">
+    <div class="eco-list-h"><b>List any Robinhood-Chain token.</b> Paste a token address — if it has real liquidity, it's a market in seconds.</div>
+    <div class="eco-list-row">
+      <input id="eco-addr" placeholder="0x… token address" spellcheck="false" autocomplete="off">
+      <button id="eco-go">List it →</button>
+    </div>
+    <div id="eco-msg" class="eco-msg"></div>
   </div>
 </div></section>
 
@@ -277,7 +322,7 @@ const cnt=(n)=>{if(n==null||!isFinite(n))return'—';const a=Math.abs(n);if(a>=1
 async function load(){
   try{
     const cfg=await fetch('/api/config').then(r=>r.json());
-    if(cfg.markets)document.getElementById('ls-mkt').textContent=cfg.markets.length;
+    if(cfg.markets){document.getElementById('ls-mkt').textContent=cfg.markets.length;const om=document.getElementById('os-mkt');if(om)om.textContent=cfg.markets.length;}
     if(cfg.mint){document.getElementById('cabar').style.display='flex';document.getElementById('ca-mint').textContent=cfg.mint;}
     const m=await fetch('/api/metrics').then(r=>r.json());
     document.getElementById('ls-oi').textContent=cnt(m.oi);
@@ -285,6 +330,38 @@ async function load(){
     document.getElementById('ls-h').textContent=(m.haircut*100).toFixed(1)+'%';
   }catch(e){}
 }
+const px=(v,dp)=>{if(v==null||!isFinite(v))return'—';return'$'+v.toLocaleString(undefined,{minimumFractionDigits:Math.min(dp,8),maximumFractionDigits:Math.min(dp,8)})};
+async function loadEco(){
+  try{
+    const e=await fetch('/api/ecosystem').then(r=>r.json());
+    const meta=document.getElementById('eco-meta');
+    meta.innerHTML='<span class="g">'+e.listed+'</span> Robinhood-Chain coins live · auto-discovered from on-chain liquidity · refreshes every 3 min';
+    const b=document.getElementById('eco-board');
+    b.innerHTML=e.coins.map(c=>{
+      const up=c.chg24>=0;const seed=(c.sym==='CASHCAT'||c.sym==='JUGGERNAUT');
+      return '<div class="eco-c">'+(seed?'<div class="seed">DEEP</div>':'')+
+        '<div class="top"><span class="sym">'+c.sym+'</span><span class="lev">'+c.maxLev+'×</span></div>'+
+        '<div><span class="px">'+px(c.px,c.dp)+'</span><span class="chg '+(up?'up':'down')+'">'+(up?'+':'')+(c.chg24||0).toFixed(1)+'%</span></div>'+
+        '<div class="row"><span>liq <b>'+cnt(c.liq)+'</b></span><span>24h vol <b>'+cnt(c.vol24)+'</b></span></div>'+
+        '<div class="act"><a class="l" href="/app?m='+encodeURIComponent(c.sym)+'&side=long">Long</a><a class="s" href="/app?m='+encodeURIComponent(c.sym)+'&side=short">Short</a></div>'+
+      '</div>';
+    }).join('');
+  }catch(e){}
+}
+async function listToken(){
+  const inp=document.getElementById('eco-addr'),btn=document.getElementById('eco-go'),msg=document.getElementById('eco-msg');
+  const a=inp.value.trim();if(!a){inp.focus();return;}
+  btn.disabled=true;msg.className='eco-msg';msg.textContent='resolving on-chain liquidity…';
+  try{
+    const r=await fetch('/api/list',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:a})}).then(r=>r.json());
+    if(r.error){msg.className='eco-msg err';msg.textContent='✕ '+r.error;}
+    else{msg.className='eco-msg ok';msg.textContent='✓ '+r.sym+(r.existed?' is already listed':' is now live')+' — '+r.maxLev+'× · '+cnt(r.liq)+' liquidity. Open it in the terminal →';inp.value='';loadEco();}
+  }catch(e){msg.className='eco-msg err';msg.textContent='✕ network error — try again';}
+  btn.disabled=false;
+}
+document.getElementById('eco-go').onclick=listToken;
+document.getElementById('eco-addr').addEventListener('keydown',e=>{if(e.key==='Enter')listToken();});
+loadEco();setInterval(loadEco,8000);
 load();setInterval(load,5000);
 document.getElementById('ca-copy')&&(document.getElementById('ca-copy').onclick=()=>{const c=document.getElementById('ca-mint').textContent;if(c)navigator.clipboard.writeText(c)});
 </script>

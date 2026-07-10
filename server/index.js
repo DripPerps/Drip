@@ -66,22 +66,47 @@ const FEED = {
 // Robinhood-native listings — no Pyth feed exists for these, so they mark to a
 // PINNED deep-liquidity DEX pair (DexScreener pair address, NOT a per-token
 // search — pinning the exact pair is what avoids the mispriced-pair problem).
+// Robinhood-native listings — no Pyth feed exists, so they mark to a PINNED
+// deep-liquidity DEX pair. These two are the always-on deep seeds; the DISCOVERY
+// engine (below) auto-lists the rest of the Robinhood ecosystem from live pairs.
 const DSPAIR = {
   JUGGERNAUT: '0x588b0785f50063260003B7790C42f1eF74902746', // vs WETH · ~$450k liq
   CASHCAT: '0xA70fc67C9F69da90B63a0e4C05D229954574E313',    // vs WETH · ~$5.6M liq
 };
 function side() { return { A: 1, K: 0, F: 0, OI: 0, epoch: 0, mode: 'Normal', K0: 0, F0: 0 }; }
+// leverage scales to REAL liquidity — deeper pair, more leverage. Honest risk gating.
+function levForLiq(liq) { return liq >= 1e6 ? 25 : liq >= 5e5 ? 20 : liq >= 2e5 ? 15 : liq >= 7.5e4 ? 10 : 5; }
+function dpForPx(p) { return p >= 100 ? 2 : p >= 1 ? 3 : p >= 0.01 ? 4 : p >= 1e-4 ? 6 : 8; }
+function mkMarket(sym, px, dp, o) {
+  o = o || {};
+  return {
+    sym, feed: FEED[sym], ds: o.ds || null, src: FEED[sym] ? 'pyth' : 'dex',
+    px, P_last: px, base: px, dp,
+    maxLev: o.maxLev != null ? o.maxLev : (sym === 'SOL' ? 50 : 20),
+    fundingRate: (Math.random() - .5) * 4e-5,
+    seenLive: false, live: false, lastTs: 0, dayRef: { price: px, ts: Date.now() },
+    hist: [], long: side(), short: side(),
+    dyn: !!o.dyn, eco: o.eco || null, // eco = { liq, vol24, chg24, pair, name } for the ecosystem board
+  };
+}
+// Pyth majors — always present, fixed leverage.
 const MKT = [
   ['BONK', 0.0000043, 8], ['WIF', 0.15, 4], ['POPCAT', 0.046, 4], ['PNUT', 0.042, 4],
   ['GOAT', 0.0124, 5], ['MOODENG', 0.038, 5], ['FARTCOIN', 0.123, 4], ['SOL', 68, 2],
-  ['JUGGERNAUT', 0.0102, 5], ['CASHCAT', 0.111, 4],
-].map(([sym, px, dp]) => ({
-  sym, feed: FEED[sym], ds: DSPAIR[sym], src: FEED[sym] ? 'pyth' : 'dex', px, P_last: px, base: px, dp,
-  maxLev: sym === 'SOL' ? 50 : sym === 'JUGGERNAUT' ? 10 : 20, fundingRate: (Math.random() - .5) * 4e-5,
-  seenLive: false, live: false, lastTs: 0, dayRef: { price: px, ts: Date.now() },
-  hist: [], long: side(), short: side(),
-}));
+].map(([sym, px, dp]) => mkMarket(sym, px, dp, { maxLev: sym === 'SOL' ? 50 : 20 }));
 const M = (s) => MKT.find((m) => m.sym === s);
+// dynamic Robinhood-ecosystem markets (auto-discovered / permissionlessly listed)
+function addDyn(sym, px, dp, o) {
+  sym = String(sym || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  if (!sym || !(px > 0)) return null;
+  let m = M(sym);
+  if (m) { if (o.ds) m.ds = o.ds; if (o.maxLev != null) m.maxLev = o.maxLev; if (o.eco) m.eco = o.eco; m.dyn = true; return m; }
+  m = mkMarket(sym, px, dp, Object.assign({ dyn: true }, o));
+  MKT.push(m); return m;
+}
+// always-on deep Robinhood seeds (present even before the first discovery pass)
+addDyn('JUGGERNAUT', 0.0102, 5, { ds: DSPAIR.JUGGERNAUT, maxLev: 10, eco: { name: 'Juggernaut', pair: DSPAIR.JUGGERNAUT } });
+addDyn('CASHCAT', 0.111, 4, { ds: DSPAIR.CASHCAT, maxLev: 20, eco: { name: 'Cash Cat', pair: DSPAIR.CASHCAT } });
 let PRICE_OK = false, LAST_OK = 0;
 
 // first sighting seeds the market (no mark); subsequent ticks mark-to-market
@@ -114,9 +139,84 @@ async function fetchDexPrices() {
     const r = await fetch('https://api.dexscreener.com/latest/dex/pairs/robinhood/' + ds.map((m) => m.ds).join(','), { headers: { accept: 'application/json' } });
     if (!r.ok) throw new Error('http ' + r.status);
     const j = await r.json(); const by = {};
-    for (const p of j.pairs || []) by[(p.pairAddress || '').toLowerCase()] = +p.priceUsd;
-    for (const m of ds) seedOrMark(m, by[m.ds.toLowerCase()]);
+    for (const p of j.pairs || []) by[(p.pairAddress || '').toLowerCase()] = p;
+    for (const m of ds) {
+      const p = by[m.ds.toLowerCase()]; if (!p) continue;
+      seedOrMark(m, +p.priceUsd);
+      m.eco = Object.assign(m.eco || {}, { liq: p.liquidity && p.liquidity.usd || 0, vol24: p.volume && p.volume.h24 || 0, chg24: p.priceChange && p.priceChange.h24 || 0, pair: m.ds, name: (m.eco && m.eco.name) || (p.baseToken && p.baseToken.name) || m.sym });
+    }
   } catch (e) { /* transient — pinned pairs keep last good price */ }
+}
+
+// ---------- Robinhood ecosystem DISCOVERY ----------
+// Pull LIVE Robinhood-chain pairs from DexScreener, filter for real liquidity,
+// dedupe by ticker (keep the deepest pair), and auto-list each as a perp market.
+// This is what makes IVY the leverage layer for the *entire* Robinhood chain:
+// every coin with real liquidity becomes long/short-able, permissionlessly.
+const DISC_MIN_LIQ = +(process.env.DISC_MIN_LIQ || 20000);   // ignore dust pools
+const DISC_MIN_VOL = +(process.env.DISC_MIN_VOL || 4000);    // ignore dead pairs
+const DISC_MAX = +(process.env.DISC_MAX || 14);              // cap auto-listed coins
+const DISC_TERMS = ['robinhood', 'hood', 'cash', 'hat', 'pepe'];
+let LISTED_COUNT = 0, DISC_LAST = 0;
+
+async function dsSearch(term) {
+  try {
+    const r = await fetch('https://api.dexscreener.com/latest/dex/search?q=' + encodeURIComponent(term), { headers: { accept: 'application/json' } });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.pairs || []).filter((p) => p.chainId === 'robinhood');
+  } catch (e) { return []; }
+}
+function bestByTicker(pairs) {
+  const by = {};
+  for (const p of pairs) {
+    const sym = String(p.baseToken && p.baseToken.symbol || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+    const liq = p.liquidity && p.liquidity.usd || 0, vol = p.volume && p.volume.h24 || 0, px = +p.priceUsd;
+    if (!sym || FEED[sym] || !(px > 0) || liq < DISC_MIN_LIQ || vol < DISC_MIN_VOL) continue;
+    if (!by[sym] || liq > by[sym].liq) by[sym] = { sym, px, liq, vol, chg: p.priceChange && p.priceChange.h24 || 0, pair: p.pairAddress, name: p.baseToken.name || sym };
+  }
+  return by;
+}
+async function discover() {
+  const batches = await Promise.all(DISC_TERMS.map(dsSearch));
+  const all = [].concat(...batches);
+  if (!all.length) return;
+  const by = bestByTicker(all);
+  const ranked = Object.values(by).sort((a, b) => b.vol - a.vol).slice(0, DISC_MAX);
+  let n = 0;
+  for (const c of ranked) {
+    const m = addDyn(c.sym, c.px, dpForPx(c.px), {
+      ds: c.pair, maxLev: levForLiq(c.liq),
+      eco: { liq: c.liq, vol24: c.vol, chg24: c.chg, pair: c.pair, name: c.name },
+    });
+    if (m) { if (m.eco) { m.eco.liq = c.liq; m.eco.vol24 = c.vol; m.eco.chg24 = c.chg; } n++; }
+  }
+  LISTED_COUNT = MKT.filter((m) => m.src === 'dex').length;
+  DISC_LAST = Date.now();
+  db.dyn = MKT.filter((m) => m.dyn).map((m) => ({ sym: m.sym, ds: m.ds, dp: m.dp, maxLev: m.maxLev, base: m.base, eco: m.eco }));
+}
+// permissionless listing — paste ANY Robinhood-chain token address, get a live market.
+async function listToken(addr) {
+  addr = String(addr || '').trim();
+  if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return { error: 'paste a valid Robinhood-chain token address (0x…)' };
+  let pairs;
+  try {
+    const r = await fetch('https://api.dexscreener.com/latest/dex/tokens/' + addr, { headers: { accept: 'application/json' } });
+    pairs = ((await r.json()).pairs || []).filter((p) => p.chainId === 'robinhood' && +p.priceUsd > 0);
+  } catch (e) { return { error: 'could not reach the price oracle — try again' }; }
+  if (!pairs.length) return { error: 'no Robinhood-chain market found for that token' };
+  pairs.sort((a, b) => (b.liquidity && b.liquidity.usd || 0) - (a.liquidity && a.liquidity.usd || 0));
+  const p = pairs[0], liq = p.liquidity && p.liquidity.usd || 0, vol = p.volume && p.volume.h24 || 0, px = +p.priceUsd;
+  if (liq < DISC_MIN_LIQ) return { error: 'liquidity too thin to list safely ($' + Math.round(liq).toLocaleString() + ' < $' + DISC_MIN_LIQ.toLocaleString() + ')' };
+  const sym = String(p.baseToken.symbol || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+  if (FEED[sym]) return { error: sym + ' is already a Pyth-oracle market' };
+  const existed = !!M(sym);
+  const m = addDyn(sym, px, dpForPx(px), { ds: p.pairAddress, maxLev: levForLiq(liq), eco: { liq, vol24: vol, chg24: p.priceChange && p.priceChange.h24 || 0, pair: p.pairAddress, name: p.baseToken.name || sym } });
+  if (!m) return { error: 'could not list that token' };
+  seedOrMark(m, px); LISTED_COUNT = MKT.filter((x) => x.src === 'dex').length;
+  db.dyn = MKT.filter((x) => x.dyn).map((x) => ({ sym: x.sym, ds: x.ds, dp: x.dp, maxLev: x.maxLev, base: x.base, eco: x.eco }));
+  save();
+  return { ok: true, sym: m.sym, existed, maxLev: m.maxLev, px: m.px, liq, vol24: vol };
 }
 
 // ---------- state ----------
@@ -125,6 +225,10 @@ let db = { wallets: {}, pos: [], V: 35000, I: 8000, mkt: null };
 try { db = Object.assign(db, JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'))); } catch (e) {}
 if (!db.wallets) db.wallets = {}; if (!db.pos) db.pos = [];
 if (db.V == null) db.V = 35000; if (db.I == null) db.I = 8000;
+// recreate previously-discovered dynamic markets BEFORE reapplying side-states,
+// so positions on auto-listed Robinhood coins survive a restart even before the
+// next discovery pass completes.
+if (Array.isArray(db.dyn)) for (const d of db.dyn) addDyn(d.sym, d.base || 0.0001, d.dp || dpForPx(d.base || 0.0001), { ds: d.ds, maxLev: d.maxLev, eco: d.eco });
 // restore per-market side indices + price refs so persisted positions stay consistent across restarts
 if (db.mkt) for (const s of db.mkt) { const m = M(s.sym); if (!m) continue; m.long = s.long; m.short = s.short; m.P_last = s.P_last; m.base = s.base; m.dayRef = s.dayRef; m.seenLive = true; m.bootCatch = true; }
 function snapMkt() { return MKT.map((m) => ({ sym: m.sym, long: m.long, short: m.short, P_last: m.P_last, base: m.base, dayRef: m.dayRef })); }
@@ -260,6 +364,16 @@ function sideView(S) { return { A: S.A, K: S.K, F: S.F, OI: S.OI, epoch: S.epoch
 const chg = (m) => (m.px / m.dayRef.price - 1) * 100;
 function markets() { return MKT.map((m) => ({ sym: m.sym, src: m.src, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, longMode: m.long.mode, shortMode: m.short.mode })); }
 function marketDetail(sym) { const m = M(sym); if (!m) return null; return { sym: m.sym, src: m.src, px: m.px, dp: m.dp, change: chg(m), funding: m.fundingRate * 100, maxLev: m.maxLev, live: m.live, hist: m.hist.slice(-120), long: sideView(m.long), short: sideView(m.short) }; }
+// live Robinhood-ecosystem board: every auto-listed / permissionlessly-listed coin
+function ecosystem() {
+  const coins = MKT.filter((m) => m.src === 'dex').map((m) => ({
+    sym: m.sym, name: m.eco && m.eco.name || m.sym, px: m.px, dp: m.dp, change: chg(m),
+    maxLev: m.maxLev, live: m.live, oi: (m.long.OI + m.short.OI) * m.px,
+    liq: m.eco && m.eco.liq || 0, vol24: m.eco && m.eco.vol24 || 0, chg24: m.eco && m.eco.chg24 || 0,
+    pair: m.eco && m.eco.pair || m.ds || '',
+  })).sort((a, b) => b.vol24 - a.vol24);
+  return { chain: 'robinhood', listed: coins.length, lastDiscovery: DISC_LAST, coins };
+}
 function account(addr) {
   const w = W(addr), s = solvency();
   const positions = db.pos.filter((p) => p.wallet === addr).map((p) => {
@@ -293,12 +407,14 @@ function body(req) { return new Promise((r) => { let b = ''; req.on('data', (c) 
 
 const server = http.createServer(async (req, res) => {
   const u = req.url.split('?')[0];
-  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: IVY_MINT, network: 'robinhood-chain', priceLive: PRICE_OK, priceSource: 'Pyth + DEX', lastPrice: LAST_OK, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp, src: m.src })), chain: CHAIN });
+  if (u === '/api/config') return json(res, 200, { token: TOKEN, mint: IVY_MINT, network: 'robinhood-chain', priceLive: PRICE_OK, priceSource: 'Pyth + DEX', lastPrice: LAST_OK, listed: LISTED_COUNT, maint_bps: MAINT_BPS, maxMoveBps: MAX_MOVE_BPS, markets: MKT.map((m) => ({ sym: m.sym, maxLev: m.maxLev, dp: m.dp, src: m.src })), chain: CHAIN });
   if (u === '/api/markets') return json(res, 200, markets());
+  if (u === '/api/ecosystem') return json(res, 200, ecosystem());
   if (u === '/api/metrics') return json(res, 200, metrics());
   if (u.startsWith('/api/market/')) { const d = marketDetail(u.split('/')[3]); return d ? json(res, 200, d) : json(res, 404, { error: 'no market' }); }
   if (req.method === 'POST') {
     const d = await body(req);
+    if (u === '/api/list') return json(res, 200, await listToken(d.token || ''));   // permissionless listing
     if (u === '/api/account') { if (!isWallet(d.wallet || '')) return json(res, 200, { error: 'paste a valid 0x wallet' }); return json(res, 200, account(d.wallet)); }
     if (!isWallet(d.wallet || '')) return json(res, 200, { error: 'connect a wallet first' });
     if (u === '/api/open') { const r = openPos(d.wallet, d.market, d.side === 'short' ? 'short' : 'long', d.sizeUsd, d.lev); if (r.error) return json(res, 200, r); save(); return json(res, 200, Object.assign({ ok: true }, account(d.wallet))); }
@@ -308,8 +424,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 (async () => {
+  await discover();                                                     // auto-list the Robinhood ecosystem from live pairs
   await fetchPrices(); await fetchDexPrices();                          // seed real prices before accepting traffic
-  server.listen(PORT, () => console.log('IVY × percolator engine on :' + PORT + ' — ' + MKT.length + ' markets · Pyth live=' + PRICE_OK));
+  server.listen(PORT, () => console.log('IVY × percolator engine on :' + PORT + ' — ' + MKT.length + ' markets (' + LISTED_COUNT + ' Robinhood-native) · Pyth live=' + PRICE_OK));
   setInterval(fetchPrices, 2500); setInterval(fetchDexPrices, 4000);               // live oracle refresh
+  setInterval(discover, 180000);                // re-scan the Robinhood ecosystem every 3 min
   setInterval(tick, SEC * 1000);                // settle / liquidate / recover
 })();
